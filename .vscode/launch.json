@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot - TurnosApplication",
+      "request": "launch",
+      "mainClass": "com.maxturnos.TurnosApplication",
+      "projectName": "turnos-backend",
+      "args": "",
+      "envFile": "${workspaceFolder}/backend/.env",
+      "cwd": "${workspaceFolder}/backend",
+      "vmArgs": "-Dspring.profiles.active=dev"
+    }
+  ]
+}

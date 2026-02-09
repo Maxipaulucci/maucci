@@ -1,0 +1,559 @@
+.auth-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: var(--spacing-md);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.auth-modal {
+  background-color: white;
+  border-radius: 16px;
+  padding: var(--spacing-xl);
+  padding-top: 50px;
+  width: 100%;
+  max-width: 450px;
+  max-height: 580px;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.auth-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: var(--spacing-sm);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.auth-modal-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #1f2937;
+  transform: rotate(90deg);
+}
+
+.auth-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xl);
+}
+
+.auth-tab {
+  flex: 1;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: #f3f4f6;
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-tab:hover {
+  background-color: #e5e7eb;
+}
+
+.auth-tab.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  flex: 1;
+  justify-content: flex-start;
+  overflow-x: hidden;
+  padding-right: 4px;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+/* Scroll solo en registro */
+.auth-form-scrollable {
+  overflow-y: auto;
+}
+
+/* Sin scroll en login */
+.auth-form:not(.auth-form-scrollable) {
+  overflow-y: hidden;
+}
+
+/* Campos ocultos para mantener la altura en login */
+.auth-field-hidden {
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  position: relative;
+  height: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.auth-field-hidden label,
+.auth-field-hidden input {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Estilos para el scrollbar del formulario */
+.auth-form::-webkit-scrollbar {
+  width: 6px;
+}
+
+.auth-form::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.auth-form::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.auth-form::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.auth-field label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.auth-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Asegurar que no haya iconos en campos de contraseña */
+.auth-input-wrapper:has(input.auth-input-no-icon) .auth-input-icon {
+  display: none !important;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: var(--spacing-md);
+  color: var(--primary-color);
+  font-size: 1rem;
+  z-index: 1;
+}
+
+.auth-input-wrapper input {
+  width: 100%;
+  padding: var(--spacing-md) 3rem var(--spacing-md) 3rem;
+  border: 2px solid #e0f2fe;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  transition: border-color 0.2s ease;
+  outline: none;
+  background-color: white;
+}
+
+/* Prevenir autocompletado del navegador */
+.auth-input-wrapper input:-webkit-autofill,
+.auth-input-wrapper input:-webkit-autofill:hover,
+.auth-input-wrapper input:-webkit-autofill:focus,
+.auth-input-wrapper input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px white inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  box-shadow: 0 0 0 1000px white inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.auth-input-no-icon {
+  padding-left: var(--spacing-md) !important;
+}
+
+/* Ocultar cualquier icono que pueda aparecer en campos de contraseña */
+.auth-input-wrapper input[type="password"],
+.auth-input-wrapper input[type="text"].auth-input-no-icon {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Ocultar iconos del navegador (como el ojo de Chrome) - Solución más agresiva */
+.password-input-wrapper input[type="password"]::-webkit-credentials-auto-fill-button,
+.password-input-wrapper input[type="password"]::-webkit-strong-password-auto-fill-button,
+.password-input-wrapper input[type="password"]::-webkit-textfield-decoration-container,
+.password-input-wrapper input[type="password"]::-webkit-inner-spin-button,
+.password-input-wrapper input[type="password"]::-webkit-outer-spin-button {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute;
+  right: -9999px;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ocultar el botón de mostrar contraseña nativo de Chrome de forma más agresiva */
+input.password-input[type="password"]::-webkit-credentials-auto-fill-button,
+input.password-input[type="password"]::-webkit-strong-password-auto-fill-button {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  right: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+}
+
+/* Ocultar cualquier decoración del navegador en campos de contraseña */
+.password-input-wrapper input[type="password"] {
+  -webkit-textfield-decoration-container: none !important;
+}
+
+/* Solución alternativa: usar input tipo text y ocultar con CSS cuando sea necesario */
+.password-input-wrapper input.password-input.password-hidden {
+  font-family: 'text-security-disc' !important;
+  -webkit-text-security: disc !important;
+  text-security: disc !important;
+  letter-spacing: 0.1em !important;
+}
+
+/* Asegurar que cuando NO está oculto, use la fuente normal */
+.password-input-wrapper input.password-input:not(.password-hidden) {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif !important;
+}
+
+/* Asegurar que el placeholder tenga el mismo estilo en todos los campos */
+.password-input-wrapper input.password-input::placeholder {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif !important;
+  -webkit-text-security: none !important;
+  text-security: none !important;
+  letter-spacing: normal !important;
+  font-size: 1rem !important;
+  color: #9ca3af !important;
+  font-weight: normal !important;
+}
+
+/* Ocultar completamente el icono nativo del navegador */
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper::before {
+  display: none !important;
+}
+
+.password-input-wrapper::after {
+  display: none !important;
+}
+
+/* Asegurar que no haya iconos visibles a la izquierda en campos sin icono */
+.auth-input-wrapper:has(input.auth-input-no-icon) .auth-input-icon {
+  display: none !important;
+}
+
+/* Ocultar cualquier pseudo-elemento que pueda mostrar un icono */
+.auth-input-wrapper:has(input.auth-input-no-icon)::before,
+.auth-input-wrapper:has(input.auth-input-no-icon)::after {
+  display: none !important;
+}
+
+.auth-input-wrapper input:focus {
+  border-color: var(--primary-color);
+}
+
+.auth-input-wrapper input::placeholder {
+  color: #9ca3af;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+.auth-password-toggle {
+  position: absolute;
+  right: var(--spacing-md);
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  z-index: 1;
+}
+
+.auth-password-toggle:hover {
+  opacity: 0.7;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: var(--spacing-lg);
+  flex-shrink: 0;
+}
+
+.auth-submit-btn-login {
+  margin-top: 0 !important;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+
+.auth-submit-btn:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.4);
+}
+
+.auth-submit-btn:active {
+  transform: translateY(0);
+}
+
+.auth-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-submit-btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Mensajes de error y éxito */
+.auth-message {
+  padding: var(--spacing-md);
+  border-radius: 8px;
+  margin-bottom: var(--spacing-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.auth-message-error {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.auth-message-success {
+  background-color: #d1fae5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+/* Sección de verificación */
+.auth-verification-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.auth-verification-header h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.auth-verification-header p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.auth-verification-email {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 1rem;
+  margin-top: var(--spacing-sm);
+}
+
+.auth-resend-code {
+  text-align: center;
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid #e5e7eb;
+}
+
+.auth-resend-code p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.auth-resend-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: opacity 0.2s ease;
+  padding: var(--spacing-xs);
+}
+
+.auth-resend-btn:hover {
+  opacity: 0.7;
+}
+
+.auth-resend-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-back-to-login {
+  text-align: center;
+  margin-top: var(--spacing-md);
+}
+
+.auth-back-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: opacity 0.2s ease;
+  padding: var(--spacing-xs);
+}
+
+.auth-back-btn:hover {
+  opacity: 0.7;
+  color: var(--text-primary);
+}
+
+.auth-back-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input de código de verificación */
+.auth-input-wrapper input[type="text"][name="codigoVerificacion"] {
+  text-align: center;
+  letter-spacing: 8px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* Opciones de tipo de registro */
+.auth-register-options {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.auth-register-options-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.auth-register-options-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.auth-register-option-btn {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: white;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-register-option-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.4);
+}
+
+.auth-register-option-btn:active {
+  transform: translateY(0);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .auth-modal {
+    padding: var(--spacing-lg);
+    max-width: 100%;
+  }
+  
+  .auth-tabs {
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .auth-tab {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.875rem;
+  }
+}
+

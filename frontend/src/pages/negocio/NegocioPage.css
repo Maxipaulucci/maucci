@@ -1,0 +1,436 @@
+.negocio-page {
+  min-height: calc(100vh - 70px);
+  height: calc(100vh - 70px);
+  background-color: #f5f5f5;
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.negocio-page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: white;
+  border-radius: 8px;
+  padding: var(--spacing-2xl, 3rem) var(--spacing-2xl, 3rem);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.negocio-page-container h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.resenas-error {
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: var(--spacing-md);
+  border-radius: 8px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.resenas-loading {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--text-secondary);
+}
+
+.resenas-section {
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: var(--spacing-lg);
+}
+
+.resenas-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.resenas-orden-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.resena-orden-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.resena-orden-option:hover {
+  background-color: #f5f5f5;
+}
+
+.resena-orden-option input[type="radio"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-color);
+}
+
+.resena-orden-option input[type="radio"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.resena-orden-option span {
+  font-size: 1rem;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.resenas-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.resenas-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.resenas-info-text {
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.resenas-empty {
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.resenas-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.resena-item {
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+}
+
+.resena-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.resena-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.resena-rating-display {
+  display: flex;
+  gap: 4px;
+}
+
+.resena-star-icon {
+  font-size: 1rem;
+  color: #fbbf24;
+}
+
+.resena-star-icon.empty {
+  color: #d1d5db;
+}
+
+.resena-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.resena-email {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.resena-nombre {
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.resena-fecha {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.resena-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.btn-resena {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-resena-aprobar {
+  background-color: #10b981;
+  color: white;
+}
+
+.btn-resena-aprobar:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.btn-resena-rechazar {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-resena-rechazar:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.btn-resena-pendiente {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.btn-resena-pendiente:hover {
+  background-color: #d97706;
+  transform: translateY(-1px);
+}
+
+.btn-resena-pendiente:active {
+  transform: translateY(0);
+}
+
+.btn-resena-eliminar {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.btn-resena-eliminar:hover {
+  background-color: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.btn-resena-eliminar:active {
+  transform: translateY(0);
+}
+
+.resena-status {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.resena-status.aprobada {
+  background-color: #10b981;
+  color: white;
+}
+
+.resena-status.rechazada {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.resena-item.resena-aprobada {
+  background-color: #d1fae5;
+  border-color: #86efac;
+}
+
+.resena-item.resena-rechazada {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  opacity: 0.9;
+}
+
+.resena-texto {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-light);
+}
+
+@media (max-width: 768px) {
+  .resena-item-header {
+    flex-direction: column;
+  }
+
+  .resena-actions {
+    width: 100%;
+  }
+
+  .btn-resena {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+.resenas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.resenas-header h1 {
+  margin: 0;
+}
+
+.btn-dejar-resena {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Modal de confirmación para eliminar reseña */
+.resena-delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: var(--spacing-md);
+}
+
+.resena-delete-modal {
+  background-color: white;
+  border-radius: 12px;
+  padding: var(--spacing-xl);
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.resena-delete-modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.resena-delete-modal-message {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xl);
+  line-height: 1.5;
+}
+
+.resena-delete-modal-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+}
+
+.btn-resena-delete {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-resena-delete-cancel {
+  background-color: #e5e7eb;
+  color: var(--text-primary);
+}
+
+.btn-resena-delete-cancel:hover {
+  background-color: #d1d5db;
+}
+
+.btn-resena-delete-confirm {
+  background-color: #dc2626;
+  color: white;
+}
+
+.btn-resena-delete-confirm:hover {
+  background-color: #b91c1c;
+}
+
+@media (max-width: 768px) {
+  .resenas-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-dejar-resena {
+    width: 100%;
+  }
+
+  .resena-delete-modal {
+    max-width: 90%;
+  }
+
+  .resena-delete-modal-actions {
+    flex-direction: column;
+  }
+
+  .btn-resena-delete {
+    width: 100%;
+  }
+}
+
