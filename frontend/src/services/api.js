@@ -101,6 +101,36 @@ export const authService = {
       method: 'POST',
       body: JSON.stringify({ email, currentPassword, newPassword })
     });
+  },
+
+  // Historial de turnos del usuario
+  getMiHistorial: async (email) => {
+    return await fetchAPI(`/auth/mi-historial?email=${encodeURIComponent(email || '')}`);
+  }
+};
+
+// Super admin (panel programador): crear/listar/eliminar negocios
+export const superadminService = {
+  crearNegocio: async (email, id, mailAsociado) => {
+    return await fetchAPI('/superadmin/negocios', {
+      method: 'POST',
+      body: JSON.stringify({ email, id: (id || '').trim(), mailAsociado: (mailAsociado || '').trim() })
+    });
+  },
+  listarNegocios: async (email, withDetails = false) => {
+    const url = `/superadmin/negocios?email=${encodeURIComponent(email || '')}${withDetails ? '&details=true' : ''}`;
+    return await fetchAPI(url);
+  },
+  actualizarMailAsociado: async (email, id, mailAsociado) => {
+    return await fetchAPI(`/superadmin/negocios/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ email, mailAsociado: (mailAsociado || '').trim() })
+    });
+  },
+  eliminarNegocio: async (email, id) => {
+    return await fetchAPI(`/superadmin/negocios/${encodeURIComponent(id)}?email=${encodeURIComponent(email || '')}`, {
+      method: 'DELETE'
+    });
   }
 };
 
@@ -154,12 +184,23 @@ export const reservasService = {
     return await fetchAPI(`/reservas/por-mes?${params.toString()}`);
   },
 
-  // Cancelar una reserva
-  cancelarReserva: async (reservaId, nota = null) => {
+  // Cancelar una reserva (establecimiento requerido por el backend)
+  cancelarReserva: async (reservaId, nota = null, establecimiento = '') => {
     const body = nota ? { nota } : {};
-    return await fetchAPI(`/reservas/${reservaId}`, {
+    const url = establecimiento
+      ? `/reservas/${reservaId}?establecimiento=${encodeURIComponent(establecimiento)}`
+      : `/reservas/${reservaId}`;
+    return await fetchAPI(url, {
       method: 'DELETE',
       body: JSON.stringify(body)
+    });
+  },
+
+  // Modificar fecha y hora de una reserva
+  modificarReserva: async (reservaId, establecimiento, fecha, hora) => {
+    return await fetchAPI(`/reservas/${reservaId}?establecimiento=${encodeURIComponent(establecimiento)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ fecha, hora })
     });
   },
 
@@ -169,6 +210,14 @@ export const reservasService = {
       method: 'POST',
       body: JSON.stringify({ asunto, mensaje })
     });
+  },
+
+  obtenerClientes: async (establecimiento) => {
+    return await fetchAPI(`/reservas/clientes?establecimiento=${encodeURIComponent(establecimiento)}`);
+  },
+
+  obtenerHistorialCliente: async (establecimiento, email) => {
+    return await fetchAPI(`/reservas/clientes/${encodeURIComponent(email)}/historial?establecimiento=${encodeURIComponent(establecimiento)}`);
   }
 };
 

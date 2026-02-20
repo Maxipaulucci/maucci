@@ -55,11 +55,6 @@ public class ReservaCleanupService {
             int totalReservasArchivadas = 0;
             int totalReservasEliminadas = 0;
 
-            System.out.println("═══════════════════════════════════════");
-            System.out.println("🧹 Limpieza automática de reservas pasadas");
-            System.out.println("📅 Fecha límite (hoy a las 00:00): " + fechaLimite);
-            System.out.println("🏢 Procesando " + negocios.size() + " negocio(s)");
-
             for (Negocio negocio : negocios) {
                 String negocioCodigo = negocio.getCodigo();
                 
@@ -72,8 +67,6 @@ public class ReservaCleanupService {
                     .collect(Collectors.toList());
 
                 if (!reservasAEliminar.isEmpty()) {
-                    System.out.println("📊 Negocio: " + negocioCodigo + " - " + reservasAEliminar.size() + " reservas a archivar");
-
                     // Convertir reservas a reservas históricas
                     for (NegocioData.ReservaData reserva : reservasAEliminar) {
                         NegocioData.ReservaHistoricaData historica = new NegocioData.ReservaHistoricaData();
@@ -97,22 +90,12 @@ public class ReservaCleanupService {
                         // Eliminar de reservas activas
                         negocioDataService.removeReserva(negocioCodigo, reserva.getId());
                         totalReservasEliminadas++;
-
-                        System.out.println("   - Reserva ID: " + reserva.getId() +
-                                ", Fecha: " + reserva.getFecha() +
-                                ", Hora: " + reserva.getHora() +
-                                ", Usuario: " + reserva.getUsuarioEmail());
                     }
                 }
             }
 
-            System.out.println("✅ " + totalReservasArchivadas + " reservas archivadas en historial");
-            System.out.println("✅ " + totalReservasEliminadas + " reservas eliminadas de colecciones activas");
-            System.out.println("═══════════════════════════════════════");
-            
         } catch (Exception e) {
-            System.err.println("❌ Error al eliminar reservas pasadas: " + e.getMessage());
-            e.printStackTrace();
+            // Ignorar fallo en limpieza programada; se reintentará en la próxima ejecución
         }
     }
 }

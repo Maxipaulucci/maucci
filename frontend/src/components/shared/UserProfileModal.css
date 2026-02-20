@@ -49,10 +49,103 @@
   text-align: center;
 }
 
+.user-profile-header-with-icon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.user-profile-historial-btn {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.user-profile-historial-btn:hover {
+  color: var(--primary-color);
+  background: var(--bg-secondary);
+}
+
+.user-profile-historial-icon {
+  font-size: 1.35rem;
+}
+
+.user-profile-header-spacer {
+  width: 40px;
+  flex-shrink: 0;
+}
+
 .user-profile-header h2 {
   margin: 0;
   color: var(--text-primary);
   font-size: 1.5rem;
+  flex: 1;
+}
+
+.user-historial-title {
+  margin: 0 0 var(--spacing-md);
+  font-size: 1.15rem;
+  color: var(--text-primary);
+}
+
+.user-historial-loading,
+.user-historial-empty {
+  margin: var(--spacing-md) 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.user-historial-list {
+  list-style: none;
+  margin: 0 0 var(--spacing-lg);
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.user-historial-item {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  font-size: 0.875rem;
+}
+
+.user-historial-item:last-child {
+  border-bottom: none;
+}
+
+.user-historial-establecimiento {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.user-historial-fecha {
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.user-historial-servicio {
+  color: var(--text-secondary);
+  grid-column: 1;
+}
+
+.user-historial-profesional {
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.user-historial-volver {
+  margin-top: auto;
 }
 
 .user-profile-content {

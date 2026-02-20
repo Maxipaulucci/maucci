@@ -73,15 +73,6 @@ public class ResenaController {
 
             Usuario usuario = usuarioOpt.get();
 
-            System.out.println("═══════════════════════════════════════");
-            System.out.println("📝 Creando reseña:");
-            System.out.println("Código negocio recibido: " + request.getNegocioCodigo());
-            System.out.println("Código negocio normalizado: " + negocioCodigo);
-            System.out.println("Nombre de colección: " + com.maxturnos.util.CollectionNameHelper.getNegocioCollection(negocioCodigo));
-            System.out.println("Email usuario: " + usuarioEmail);
-            System.out.println("Nombre usuario: " + usuario.getNombre());
-            System.out.println("Apellido usuario: " + usuario.getApellido());
-
             NegocioData.ResenaData resenaData = new NegocioData.ResenaData();
             resenaData.setUsuarioEmail(usuarioEmail);
             resenaData.setUsuarioNombre(usuario.getNombre());
@@ -92,16 +83,8 @@ public class ResenaController {
             resenaData.setFechaCreacion(LocalDateTime.now());
 
             negocioDataService.addResena(negocioCodigo, resenaData);
-            
-            System.out.println("✅ Reseña agregada al servicio. ID: " + resenaData.getId());
 
             Resena nuevaResena = ModelConverter.resenaDataToResena(resenaData, negocioCodigo);
-
-            System.out.println("✅ Reseña guardada:");
-            System.out.println("ID: " + nuevaResena.getId());
-            System.out.println("Nombre guardado: " + nuevaResena.getUsuarioNombre());
-            System.out.println("Apellido guardado: " + nuevaResena.getUsuarioApellido());
-            System.out.println("═══════════════════════════════════════");
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Reseña creada exitosamente", nuevaResena));
@@ -118,27 +101,15 @@ public class ResenaController {
     public ResponseEntity<ApiResponse<List<Resena>>> obtenerResenasPorNegocio(@PathVariable String codigo) {
         try {
             String negocioCodigo = codigo.toLowerCase().trim();
-            System.out.println("═══════════════════════════════════════");
-            System.out.println("📋 Obteniendo reseñas para el negocio:");
-            System.out.println("Código recibido: " + codigo);
-            System.out.println("Código normalizado: " + negocioCodigo);
-            System.out.println("Nombre de colección: "
-                    + com.maxturnos.util.CollectionNameHelper.getNegocioCollection(negocioCodigo));
 
             List<NegocioData.ResenaData> resenasData = negocioDataService.getResenas(negocioCodigo);
-            System.out.println("Reseñas encontradas: " + resenasData.size());
 
             List<Resena> resenas = resenasData.stream()
                     .map(r -> ModelConverter.resenaDataToResena(r, negocioCodigo))
                     .collect(java.util.stream.Collectors.toList());
 
-            System.out.println("Reseñas convertidas: " + resenas.size());
-            System.out.println("═══════════════════════════════════════");
-
             return ResponseEntity.ok(ApiResponse.success(resenas));
         } catch (Exception e) {
-            System.err.println("❌ Error al obtener reseñas: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Error al obtener reseñas: " + e.getMessage()));
         }
@@ -236,14 +207,6 @@ public class ResenaController {
 
             Object aprobarObj = request.get("aprobar");
 
-            System.out.println("═══════════════════════════════════════");
-            System.out.println("📝 Actualizando estado de reseña:");
-            System.out.println("ID: " + id);
-            System.out.println("Negocio: " + negocioCodigo);
-            System.out.println(
-                    "Valor recibido (tipo): " + (aprobarObj != null ? aprobarObj.getClass().getName() : "null"));
-            System.out.println("Valor recibido: " + aprobarObj);
-
             // Buscar la reseña en la colección del negocio
             List<NegocioData.ResenaData> resenas = negocioDataService.getResenas(negocioCodigo.toLowerCase());
             Optional<NegocioData.ResenaData> resenaOpt = resenas.stream()
@@ -256,14 +219,11 @@ public class ResenaController {
             }
 
             NegocioData.ResenaData resenaData = resenaOpt.get();
-            System.out.println("Estado actual de la reseña - aprobada: " + resenaData.getAprobada());
 
             Boolean aprobarFinal = null;
 
-            // Si aprobar es null, poner en pendiente (aprobada = null)
             if (aprobarObj == null) {
                 aprobarFinal = null;
-                System.out.println("✅ Estableciendo aprobada = null (pendiente)");
             } else {
                 Boolean aprobar;
                 // Manejar diferentes tipos de entrada
@@ -281,12 +241,6 @@ public class ResenaController {
                 }
 
                 aprobarFinal = aprobar;
-
-                if (aprobar == null) {
-                    System.out.println("✅ Estableciendo aprobada = null (pendiente)");
-                } else {
-                    System.out.println("✅ Estableciendo aprobada = " + aprobar);
-                }
             }
 
             // Actualizar usando el servicio
@@ -308,9 +262,6 @@ public class ResenaController {
 
             Resena resenaActualizada = ModelConverter.resenaDataToResena(resenaActualizadaData,
                     negocioCodigo.toLowerCase());
-
-            System.out.println("Estado después de guardar - aprobada: " + resenaActualizada.getAprobada());
-            System.out.println("═══════════════════════════════════════");
 
             String mensaje;
             if (resenaActualizada.getAprobada() == null) {

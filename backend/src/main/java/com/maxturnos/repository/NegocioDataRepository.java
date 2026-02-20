@@ -34,15 +34,9 @@ public class NegocioDataRepository {
         NegocioData data = mongoTemplate.findOne(query, NegocioData.class, collectionName);
         
         if (data == null) {
-            System.out.println("⚠️ getOrCreate: Documento no existe en " + collectionName + ", creando nuevo...");
             data = new NegocioData();
             data.setId(negocioCodigo);
             mongoTemplate.save(data, collectionName);
-            System.out.println("✅ getOrCreate: Documento creado en " + collectionName);
-        } else {
-            System.out.println("✅ getOrCreate: Documento encontrado en " + collectionName);
-            System.out.println("   - Reseñas: " + (data.getResenas() != null ? data.getResenas().size() : 0));
-            System.out.println("   - Reservas: " + (data.getReservas() != null ? data.getReservas().size() : 0));
         }
         
         return data;
@@ -83,35 +77,17 @@ public class NegocioDataRepository {
      */
     public void pushToArray(String negocioCodigo, String arrayField, Object value) {
         String collectionName = CollectionNameHelper.getNegocioCollection(negocioCodigo);
-        
-        System.out.println("═══════════════════════════════════════");
-        System.out.println("📝 pushToArray:");
-        System.out.println("Código negocio: " + negocioCodigo);
-        System.out.println("Nombre colección: " + collectionName);
-        System.out.println("Campo array: " + arrayField);
-        
-        // Asegurarse de que el documento existe primero
         Query query = new Query(Criteria.where("_id").is(negocioCodigo));
         NegocioData existing = mongoTemplate.findOne(query, NegocioData.class, collectionName);
-        
+
         if (existing == null) {
-            System.out.println("⚠️ Documento no existe, creando nuevo documento...");
-            // Crear el documento si no existe
             NegocioData newData = new NegocioData();
             newData.setId(negocioCodigo);
             mongoTemplate.save(newData, collectionName);
-            System.out.println("✅ Documento creado en colección: " + collectionName);
-        } else {
-            System.out.println("✅ Documento existe en colección: " + collectionName);
         }
-        
-        // Ahora hacer el push
+
         Update update = new Update().push(arrayField, value);
-        com.mongodb.client.result.UpdateResult result = 
-            mongoTemplate.updateFirst(query, update, NegocioData.class, collectionName);
-        
-        System.out.println("✅ Push realizado. Documentos modificados: " + result.getModifiedCount());
-        System.out.println("═══════════════════════════════════════");
+        mongoTemplate.updateFirst(query, update, NegocioData.class, collectionName);
     }
     
     /**

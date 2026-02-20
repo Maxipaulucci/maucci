@@ -30,7 +30,9 @@ import Servicios from './pages/negocio/Servicios';
 import Personal from './pages/negocio/Personal';
 import Resumen from './pages/negocio/Resumen';
 import Resenas from './pages/negocio/Resenas';
+import Clientes from './pages/negocio/Clientes';
 import Bienvenida from './pages/negocio/Bienvenida';
+import SuperAdminPage from './pages/superadmin/SuperAdminPage';
 
 import './styles/global.css';
 
@@ -40,7 +42,8 @@ const AppContent = () => {
   const { negocioNoEncontrado, user } = useAuth();
   const isMaxturnosPage = location.pathname === '/' || location.pathname === '/locales-adheridos';
   const isNegocioPage = location.pathname.startsWith('/negocio');
-  const isAdminWithNegocio = user && user.rol === 'admin' && user.nombreNegocio;
+  const isSuperAdmin = user && user.isSuperAdmin === true;
+  const isAdminWithNegocio = user && user.rol === 'admin' && user.nombreNegocio && !isSuperAdmin;
   
   // Hacer scroll suave al top cuando cambia la ruta
   useScrollToTop();
@@ -55,6 +58,18 @@ const AppContent = () => {
     );
   }
   
+  // Si es super admin (programador), mostrar panel blanco con Negocios
+  if (isSuperAdmin) {
+    return (
+      <div className="App">
+        <Routes>
+          <Route path="/superadmin" element={<SuperAdminPage />} />
+          <Route path="*" element={<Navigate to="/superadmin" replace />} />
+        </Routes>
+      </div>
+    );
+  }
+
   // Si es un admin con negocio válido, mostrar las páginas de negocio
   if (isAdminWithNegocio) {
     return (
@@ -66,6 +81,7 @@ const AppContent = () => {
             <Route path="/negocio/inicio" element={<Bienvenida />} />
             <Route path="/negocio/horarios" element={<Horarios />} />
             <Route path="/negocio/turnos" element={<TurnosReservados />} />
+            <Route path="/negocio/clientes" element={<Clientes />} />
             <Route path="/negocio/servicios" element={<Servicios />} />
             <Route path="/negocio/personal" element={<Personal />} />
             <Route path="/negocio/ingresos" element={<Resumen />} />

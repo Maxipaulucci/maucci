@@ -41,6 +41,14 @@ const NavBar = () => {
             </li>
             <li>
               <Link 
+                to="/negocio/clientes" 
+                className={`negocio-nav-link ${isActive('/negocio/clientes') ? 'active' : ''}`}
+              >
+                Clientes
+              </Link>
+            </li>
+            <li>
+              <Link 
                 to="/negocio/servicios" 
                 className={`negocio-nav-link ${isActive('/negocio/servicios') ? 'active' : ''}`}
               >

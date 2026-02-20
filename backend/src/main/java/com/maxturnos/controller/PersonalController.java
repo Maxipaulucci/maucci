@@ -98,7 +98,7 @@ public class PersonalController {
                 negocioDataService.addPersonal(establecimiento, p);
             }
         } catch (Exception e) {
-            System.err.println("Error al inicializar personal: " + e.getMessage());
+            // Ignorar fallo al inicializar datos por defecto
         }
     }
 
@@ -263,8 +263,7 @@ public class PersonalController {
                     negocioDataService.removeReserva(establecimiento, reservaData.getId());
                     reservasEliminadas++;
                 } catch (Exception e) {
-                    System.err.println("Error al eliminar reserva " + reservaData.getId() +
-                            " al eliminar personal: " + e.getMessage());
+                    // Continuar con el resto si falla eliminar una reserva
                 }
             }
 
@@ -309,8 +308,7 @@ public class PersonalController {
                             emailService.enviarEmailPersonalizado(emailCliente, asunto, mensaje);
 
                         } catch (Exception e) {
-                            System.err.println("Error al enviar email para reserva " + reserva.getId() +
-                                    " al eliminar personal: " + e.getMessage());
+                            // No bloquear si falla el envío del email
                         }
                     }
                 }).start();

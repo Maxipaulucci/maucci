@@ -438,6 +438,15 @@
   font-size: 0.9rem;
 }
 
+.btn-modificar-turno {
+  background: #059669;
+  color: white;
+}
+
+.btn-modificar-turno:hover {
+  background: #047857;
+}
+
 .btn-cancelar-turno {
   background: #ef4444;
   color: white;

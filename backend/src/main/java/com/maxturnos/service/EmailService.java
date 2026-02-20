@@ -19,58 +19,46 @@ public class EmailService {
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
+
+    /**
+     * Indica si el correo está configurado (usuario y contraseña definidos).
+     * Si no, los códigos solo se imprimen en consola (modo desarrollo).
+     */
+    public boolean isEmailConfigured() {
+        return fromEmail != null && !fromEmail.isEmpty()
+            && emailPassword != null && !emailPassword.isEmpty();
+    }
     
     public boolean enviarCodigoVerificacion(String email, String codigo) {
-        // Si no hay configuración de email, usar modo desarrollo
         if (fromEmail == null || fromEmail.isEmpty() || emailPassword == null || emailPassword.isEmpty()) {
-            System.out.println("═══════════════════════════════════════");
-            System.out.println("📧 MODO DESARROLLO - Email no configurado");
-            System.out.println("═══════════════════════════════════════");
-            System.out.println("Email destino: " + email);
-            System.out.println("Código de verificación: " + codigo);
-            System.out.println("═══════════════════════════════════════");
             return true;
         }
-        
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(email);
             message.setSubject("Código de Verificación - Maxturnos");
             message.setText("Tu código de verificación es: " + codigo + "\n\nEste código expira en 15 minutos.");
-            
             mailSender.send(message);
             return true;
         } catch (Exception e) {
-            System.err.println("Error al enviar email: " + e.getMessage());
             return false;
         }
     }
     
     public boolean enviarEmailPersonalizado(String email, String asunto, String mensaje) {
-        // Si no hay configuración de email, usar modo desarrollo
         if (fromEmail == null || fromEmail.isEmpty() || emailPassword == null || emailPassword.isEmpty()) {
-            System.out.println("═══════════════════════════════════════");
-            System.out.println("📧 MODO DESARROLLO - Email no configurado");
-            System.out.println("═══════════════════════════════════════");
-            System.out.println("Email destino: " + email);
-            System.out.println("Asunto: " + asunto);
-            System.out.println("Mensaje: " + mensaje);
-            System.out.println("═══════════════════════════════════════");
             return true;
         }
-        
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(email);
             message.setSubject(asunto);
             message.setText(mensaje);
-            
             mailSender.send(message);
             return true;
         } catch (Exception e) {
-            System.err.println("Error al enviar email: " + e.getMessage());
             return false;
         }
     }

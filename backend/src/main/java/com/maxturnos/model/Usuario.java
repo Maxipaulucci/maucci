@@ -8,13 +8,28 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Document(collection = "usuario")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Usuario {
+
+    /** Historial de turnos del usuario (reservas realizadas en la app). */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ReservaEnHistorial {
+        private String id;
+        private String establecimiento;
+        private Date fecha;
+        private String hora;
+        private String servicioNombre;
+        private String profesionalNombre;
+    }
     
     @Id
     private String id;
@@ -39,6 +54,8 @@ public class Usuario {
     private Date codigoVerificacionExpira;
     
     private LocalDateTime fechaCreacion = LocalDateTime.now();
+
+    private List<ReservaEnHistorial> historialReservas = new ArrayList<>();
     
     public void generarCodigoVerificacion() {
         this.codigoVerificacion = String.valueOf((int)(Math.random() * 900000) + 100000);

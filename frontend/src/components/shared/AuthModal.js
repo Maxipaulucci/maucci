@@ -185,12 +185,17 @@ const AuthModal = ({ isOpen, onClose }) => {
       
       setSuccess(response.message);
       // Guardar el usuario en el contexto y cerrar modal
-      login(formData.email, response.data?.rol, response.data?.nombreNegocio);
+      login(formData.email, response.data?.rol, response.data?.nombreNegocio, response.data?.isSuperAdmin);
       
+      // Si es super admin, ir al panel de negocios
+      if (response.data?.isSuperAdmin) {
+        onClose();
+        navigate('/superadmin', { replace: true });
+        return;
+      }
       // Si es admin, redirigir directamente a inicio
       if (response.data?.rol === 'admin') {
         onClose();
-        // Redirigir inmediatamente usando navigate para evitar recarga completa
         navigate('/negocio/inicio', { replace: true });
       } else {
         setTimeout(() => {
@@ -634,7 +639,7 @@ const AuthModal = ({ isOpen, onClose }) => {
             {error}
           </div>
         )}
-        {success && (
+        {success && !needsVerification && (
           <div className="auth-message auth-message-success">
             {success}
           </div>
@@ -696,12 +701,17 @@ const AuthModal = ({ isOpen, onClose }) => {
             </div>
           </form>
         ) : needsVerification ? (
-          /* Formulario de verificación */
-          <form className="auth-form" onSubmit={handleSubmit}>
+          /* Formulario de verificación (espacios reducidos para que entre sin scroll) */
+          <form className="auth-form auth-form-verification" onSubmit={handleSubmit}>
             <div className="auth-verification-header">
               <h3>{isPasswordReset ? 'Recuperar contraseña' : 'Verifica tu email'}</h3>
               <p>{isPasswordReset ? 'Hemos enviado un código de recuperación a:' : 'Hemos enviado un código de verificación a:'}</p>
               <p className="auth-verification-email">{verificationEmail}</p>
+              {!isPasswordReset && (
+                <div className="auth-verification-aviso-block">
+                  <p className="auth-verification-aviso">El código vence en 15 minutos.</p>
+                </div>
+              )}
             </div>
 
             <div className="auth-field">

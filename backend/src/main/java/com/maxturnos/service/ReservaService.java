@@ -148,34 +148,14 @@ public class ReservaService {
             Date fecha,
             Integer profesionalId,
             Integer duracionMinutos) {
-        
-        System.out.println("═══════════════════════════════════════");
-        System.out.println("📅 Obteniendo horarios disponibles:");
-        System.out.println("Código establecimiento: " + establecimientoCodigo);
-        System.out.println("Fecha: " + fecha);
-        System.out.println("Profesional ID: " + profesionalId);
-        System.out.println("Duración minutos: " + duracionMinutos);
-        
         Negocio negocio = negocioDataService.getNegocioConfig(establecimientoCodigo);
-        
-        System.out.println("✅ Config negocio cargada para: " + establecimientoCodigo + (negocio.getNombre() != null ? " (" + negocio.getNombre() + ")" : ""));
-        System.out.println("Horarios: " + negocio.getHorarios().getInicio() + " - " + negocio.getHorarios().getFin());
-        System.out.println("Intervalo: " + negocio.getHorarios().getIntervalo() + " minutos");
-        System.out.println("Días disponibles: " + negocio.getDiasDisponibles());
-        
-        // Verificar que la fecha esté en los días disponibles
         Calendar calFecha = Calendar.getInstance();
         calFecha.setTime(fecha);
         int diaSemanaCalendar = calFecha.get(Calendar.DAY_OF_WEEK); // 1 = Domingo, 2 = Lunes, ..., 7 = Sábado
         // Convertir a formato 0-6 (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
         int diaSemana = diaSemanaCalendar == Calendar.SUNDAY ? 0 : diaSemanaCalendar - 1;
-        
-        System.out.println("Día de la semana (Calendar): " + diaSemanaCalendar + " (1=Domingo, 7=Sábado)");
-        System.out.println("Día de la semana (formato 0-6): " + diaSemana + " (0=Domingo, 6=Sábado)");
-        
         if (negocio.getDiasDisponibles() != null && !negocio.getDiasDisponibles().isEmpty()) {
             if (!negocio.getDiasDisponibles().contains(diaSemana)) {
-                System.out.println("⚠️ El día " + diaSemana + " no está en días disponibles: " + negocio.getDiasDisponibles());
                 Map<String, Object> resultado = new HashMap<>();
                 resultado.put("horariosDisponibles", new ArrayList<>());
                 resultado.put("horariosBloqueados", new ArrayList<>());
@@ -194,11 +174,6 @@ public class ReservaService {
         } else if (diaSemana >= 1 && diaSemana <= 5) { // Lunes a viernes
             fin = "20:00";
         }
-        // Domingo (0) mantiene el valor por defecto (20:00)
-        
-        System.out.println("Hora límite ajustada según día de la semana: " + fin);
-        
-        // Obtener reservas existentes
         Calendar cal = Calendar.getInstance();
         cal.setTime(fecha);
         cal.set(Calendar.HOUR_OF_DAY, 0);
@@ -232,17 +207,6 @@ public class ReservaService {
                 return mismoDia && mismoProfesional;
             })
             .collect(Collectors.toList());
-        
-        System.out.println("📋 Reservas encontradas para el profesional " + profesionalId + ": " + reservasDelDia.size());
-        for (NegocioData.ReservaData reserva : reservasDelDia) {
-            System.out.println("   - Reserva ID: " + reserva.getId() + 
-                             ", Fecha: " + reserva.getFecha() + 
-                             ", Hora: " + reserva.getHora() + 
-                             ", Duración: " + reserva.getDuracionMinutos() + " min" +
-                             ", Profesional: " + (reserva.getProfesional() != null ? reserva.getProfesional().getId() : "null"));
-        }
-        
-        // Convertir a Reserva para el procesamiento
         List<Reserva> reservas = reservasDelDia.stream()
             .map(r -> ModelConverter.reservaDataToReserva(r, establecimientoCodigo))
             .collect(Collectors.toList());
@@ -261,25 +225,14 @@ public class ReservaService {
             int inicioReservaMinutos = Integer.parseInt(partesHora[0]) * 60 + Integer.parseInt(partesHora[1]);
             int finReservaMinutos = inicioReservaMinutos + reserva.getDuracionMinutos();
             rangosReservas.add(new int[]{inicioReservaMinutos, finReservaMinutos});
-            System.out.println("   ⏰ Reserva " + reserva.getId() + " (" + reserva.getHora() + "): " + 
-                             inicioReservaMinutos + " - " + finReservaMinutos + " minutos");
         }
-        
-        // Obtener horarios bloqueados manualmente
         List<String> horasBloqueadas = horarioBloqueadoService.obtenerHorasBloqueadas(
             establecimientoCodigo, fecha, profesionalId
         );
-        System.out.println("🚫 Horarios bloqueados manualmente: " + horasBloqueadas.size());
-        if (horasBloqueadas.size() > 0) {
-            System.out.println("   Horas bloqueadas: " + horasBloqueadas);
-        }
-        
-        // Filtrar horarios disponibles verificando solapamiento de rangos y horarios bloqueados
         List<String> horariosDisponibles = todosHorarios.stream()
             .filter(hora -> {
                 // Verificar si el horario está bloqueado manualmente
                 if (horasBloqueadas.contains(hora)) {
-                    System.out.println("   ❌ Horario " + hora + " bloqueado manualmente");
                     return false;
                 }
                 
@@ -302,9 +255,6 @@ public class ReservaService {
                     // - Empieza antes de que termine la reserva Y
                     // - Termina después de que empiece la reserva
                     if (inicioMinutos < finReserva && finMinutos > inicioReserva) {
-                        System.out.println("   ❌ Horario " + hora + " bloqueado por solapamiento con reserva " + 
-                                         String.format("%02d:%02d", inicioReserva/60, inicioReserva%60) + 
-                                         " - " + String.format("%02d:%02d", finReserva/60, finReserva%60));
                         return false;
                     }
                 }
@@ -320,14 +270,6 @@ public class ReservaService {
         }
         // Agregar también los horarios bloqueados manualmente
         horariosBloqueadosSet.addAll(horasBloqueadas);
-        
-        System.out.println("Horarios disponibles después de filtrar: " + horariosDisponibles.size());
-        System.out.println("Horarios bloqueados: " + horariosBloqueadosSet.size());
-        if (horariosDisponibles.size() > 0) {
-            System.out.println("Primeros horarios disponibles: " + horariosDisponibles.subList(0, Math.min(5, horariosDisponibles.size())));
-        }
-        System.out.println("═══════════════════════════════════════");
-        
         Map<String, Object> resultado = new HashMap<>();
         resultado.put("horariosDisponibles", horariosDisponibles);
         resultado.put("horariosBloqueados", new ArrayList<>(horariosBloqueadosSet));
@@ -344,14 +286,6 @@ public class ReservaService {
             int año = cal.get(Calendar.YEAR);
             int mes = cal.get(Calendar.MONTH);
             int dia = cal.get(Calendar.DAY_OF_MONTH);
-            
-            System.out.println("═══════════════════════════════════════");
-            System.out.println("🔍 Buscando reservas para el día:");
-            System.out.println("Establecimiento: " + establecimiento);
-            System.out.println("Fecha recibida: " + fecha);
-            System.out.println("Año: " + año + ", Mes: " + (mes + 1) + ", Día: " + dia);
-            
-            // Obtener todas las reservas del establecimiento (activas e históricas)
             List<NegocioData.ReservaData> reservasData = negocioDataService.getReservas(establecimiento);
             List<NegocioData.ReservaHistoricaData> reservasHistoricasData = negocioDataService.getReservasHistoricas(establecimiento);
             
@@ -416,22 +350,6 @@ public class ReservaService {
             
             // Combinar reservas activas e históricas
             reservasDelDia.addAll(reservasHistoricasConvertidas);
-            
-            System.out.println("Reservas activas encontradas: " + (reservasDelDia.size() - reservasHistoricasConvertidas.size()));
-            System.out.println("Reservas históricas encontradas: " + reservasHistoricasConvertidas.size());
-            System.out.println("Total reservas: " + reservasDelDia.size());
-            for (Reserva r : reservasDelDia) {
-                Calendar calReserva = Calendar.getInstance();
-                calReserva.setTime(r.getFecha());
-                System.out.println("  - Reserva ID: " + r.getId() + 
-                    ", Fecha almacenada: " + r.getFecha() + 
-                    ", Año: " + calReserva.get(Calendar.YEAR) + 
-                    ", Mes: " + (calReserva.get(Calendar.MONTH) + 1) + 
-                    ", Día: " + calReserva.get(Calendar.DAY_OF_MONTH) + 
-                    ", Hora: " + r.getHora());
-            }
-            System.out.println("═══════════════════════════════════════");
-            
             return reservasDelDia;
         } else if (profesionalId != null) {
             // Obtener todas las reservas de un profesional
@@ -522,17 +440,8 @@ public class ReservaService {
             int diaReserva = calReserva.get(Calendar.DAY_OF_MONTH);
             
             String claveDia = String.format("%04d-%02d-%02d", añoReserva, mesReserva, diaReserva);
-            
-            System.out.println("📊 Contando reserva - Fecha almacenada: " + reserva.getFecha() + 
-                ", Clave día: " + claveDia + 
-                " (Año: " + añoReserva + ", Mes: " + mesReserva + ", Día: " + diaReserva + ")");
-            
             contadoresPorDia.put(claveDia, contadoresPorDia.getOrDefault(claveDia, 0) + 1);
         }
-        
-        System.out.println("📊 Contadores por día: " + contadoresPorDia);
-        System.out.println("📊 Total reservas (activas + históricas): " + reservas.size());
-        
         Map<String, Object> resultado = new HashMap<>();
         resultado.put("contadoresPorDia", contadoresPorDia);
         resultado.put("totalReservas", reservas.size());

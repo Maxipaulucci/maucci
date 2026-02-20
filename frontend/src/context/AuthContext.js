@@ -29,8 +29,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Función para iniciar sesión
-  const login = (email, rol = null, nombreNegocio = null) => {
-    const userData = { email, rol, nombreNegocio };
+  const login = (email, rol = null, nombreNegocio = null, isSuperAdmin = false) => {
+    const userData = { email, rol, nombreNegocio, isSuperAdmin: !!isSuperAdmin };
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
     // Limpiar estado de negocio no encontrado al hacer login

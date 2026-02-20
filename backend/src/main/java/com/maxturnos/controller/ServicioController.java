@@ -109,7 +109,7 @@ public class ServicioController {
                 negocioDataService.addServicio(establecimiento, servicio);
             }
         } catch (Exception e) {
-            System.err.println("Error al inicializar servicios: " + e.getMessage());
+            // Ignorar fallo al inicializar datos por defecto
         }
     }
 
@@ -255,8 +255,7 @@ public class ServicioController {
                     negocioDataService.removeReserva(establecimiento, reservaData.getId());
                     reservasEliminadas++;
                 } catch (Exception e) {
-                    System.err.println("Error al eliminar reserva " + reservaData.getId() +
-                            " al eliminar servicio: " + e.getMessage());
+                    // Continuar con el resto si falla eliminar una reserva
                 }
             }
 
@@ -298,8 +297,7 @@ public class ServicioController {
                             emailService.enviarEmailPersonalizado(emailCliente, asunto, mensaje);
 
                         } catch (Exception e) {
-                            System.err.println("Error al enviar email para reserva " + reserva.getId() +
-                                    " al eliminar servicio: " + e.getMessage());
+                            // No bloquear si falla el envío del email
                         }
                     }
                 }).start();

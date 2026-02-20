@@ -6,6 +6,7 @@ import { reservasService, personalService } from '../../services/api';
 import CancelarTurnoModal from '../../components/shared/CancelarTurnoModal';
 import EnviarEmailModal from '../../components/shared/EnviarEmailModal';
 import ConfirmarCancelarTodosModal from '../../components/shared/ConfirmarCancelarTodosModal';
+import ModificarTurnoModal from '../../components/shared/ModificarTurnoModal';
 import Notification from '../../components/shared/Notification';
 import './NegocioPage.css';
 import './TurnosReservados.css';
@@ -28,6 +29,7 @@ const TurnosReservados = () => {
   const [error, setError] = useState('');
   const [showCancelarModal, setShowCancelarModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showModificarModal, setShowModificarModal] = useState(false);
   const [showConfirmarCancelarTodosModal, setShowConfirmarCancelarTodosModal] = useState(false);
   const [reservaSeleccionada, setReservaSeleccionada] = useState(null);
   const [notification, setNotification] = useState(null);
@@ -335,7 +337,7 @@ const TurnosReservados = () => {
   const handleConfirmarCancelar = async (nota, setIsLoading) => {
     try {
       if (setIsLoading) setIsLoading(true);
-      await reservasService.cancelarReserva(reservaSeleccionada.id, nota);
+      await reservasService.cancelarReserva(reservaSeleccionada.id, nota, establecimiento);
       // Recargar las reservas del día
       if (selectedDate) {
         await cargarReservasDelDia(selectedDate);
@@ -360,6 +362,19 @@ const TurnosReservados = () => {
   const handleEnviarEmail = (reserva) => {
     setReservaSeleccionada(reserva);
     setShowEmailModal(true);
+  };
+
+  const handleModificarTurno = (reserva) => {
+    setReservaSeleccionada(reserva);
+    setShowModificarModal(true);
+  };
+
+  const handleModificarTurnoSuccess = async () => {
+    setReservaSeleccionada(null);
+    setNotification({ message: 'Turno modificado correctamente', type: 'success' });
+    if (selectedDate) await cargarReservasDelDia(selectedDate);
+    const profesionalId = modoVisualizacion === 'personal' && profesionalSeleccionado ? profesionalSeleccionado.id : null;
+    await cargarReservasDelMes(date, profesionalId);
   };
 
   // Manejar cancelar todos los turnos del día
@@ -400,7 +415,7 @@ const TurnosReservados = () => {
         // Cancelar todos los turnos del día en paralelo
         // Los emails se enviarán en segundo plano desde el backend
         const promesasCancelacion = reservasACancelar.map(reserva => 
-          reservasService.cancelarReserva(reserva.id, 'Cancelación masiva de todos los turnos del día')
+          reservasService.cancelarReserva(reserva.id, 'Cancelación masiva de todos los turnos del día', establecimiento)
             .catch(err => {
               console.error(`Error al cancelar reserva ${reserva.id}:`, err);
               return { error: true, id: reserva.id };
@@ -723,6 +738,12 @@ const TurnosReservados = () => {
                     </div>
                     <div className="reserva-acciones">
                       <button 
+                        className="btn-reserva btn-modificar-turno"
+                        onClick={() => handleModificarTurno(reserva)}
+                      >
+                        Modificar turno
+                      </button>
+                      <button 
                         className="btn-reserva btn-cancelar-turno"
                         onClick={() => handleCancelarTurno(reserva)}
                       >
@@ -761,6 +782,17 @@ const TurnosReservados = () => {
           }}
           reserva={reservaSeleccionada}
           onConfirm={handleConfirmarEnviarEmail}
+        />
+
+        <ModificarTurnoModal
+          isOpen={showModificarModal}
+          onClose={() => {
+            setShowModificarModal(false);
+            setReservaSeleccionada(null);
+          }}
+          reserva={reservaSeleccionada}
+          establecimiento={establecimiento}
+          onSuccess={handleModificarTurnoSuccess}
         />
 
         <ConfirmarCancelarTodosModal

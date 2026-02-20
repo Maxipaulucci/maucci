@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { FaTimes, FaLock, FaSignOutAlt, FaEye, FaEyeSlash, FaTrash } from 'react-icons/fa';
+import { FaTimes, FaLock, FaSignOutAlt, FaEye, FaEyeSlash, FaTrash, FaHistory } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/api';
 import './UserProfileModal.css';
+
+const formatFecha = (dateStr) => {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+};
 
 const UserProfileModal = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showHistorial, setShowHistorial] = useState(false);
+  const [historial, setHistorial] = useState([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showRepeatPassword, setShowRepeatPassword] = useState(false);
@@ -27,8 +40,8 @@ const UserProfileModal = ({ isOpen, onClose }) => {
   // Resetear estado cuando el modal se abre o cierra
   useEffect(() => {
     if (isOpen) {
-      // Resetear todo cuando se abre el modal
       setShowChangePassword(false);
+      setShowHistorial(false);
       setShowDeleteConfirm(false);
       setPasswordData({ currentPassword: '', newPassword: '', repeatPassword: '' });
       setShowCurrentPassword(false);
@@ -38,6 +51,21 @@ const UserProfileModal = ({ isOpen, onClose }) => {
       setSuccess('');
     }
   }, [isOpen]);
+
+  const handleVerHistorial = async () => {
+    setShowHistorial(true);
+    setLoadingHistorial(true);
+    setError('');
+    try {
+      const res = await authService.getMiHistorial(user?.email);
+      setHistorial(Array.isArray(res?.data) ? res.data : []);
+    } catch (err) {
+      setError(err.message || 'Error al cargar historial');
+      setHistorial([]);
+    } finally {
+      setLoadingHistorial(false);
+    }
+  };
 
   if (!isOpen || !user) return null;
 
@@ -150,10 +178,21 @@ const UserProfileModal = ({ isOpen, onClose }) => {
 
         {!showChangePassword ? (
           <>
-            <div className="user-profile-header">
+            <div className="user-profile-header user-profile-header-with-icon">
+              <button
+                type="button"
+                className="user-profile-historial-btn"
+                onClick={handleVerHistorial}
+                title="Historial de turnos"
+                aria-label="Ver historial de turnos"
+              >
+                <FaHistory className="user-profile-historial-icon" />
+              </button>
               <h2>Mi Perfil</h2>
+              <span className="user-profile-header-spacer" />
             </div>
 
+            {!showHistorial ? (
             <div className="user-profile-content">
               <div className="user-info">
                 <p className="user-email-label">Sesión iniciada con el mail:</p>
@@ -194,6 +233,35 @@ const UserProfileModal = ({ isOpen, onClose }) => {
                 </button>
               </div>
             </div>
+            ) : (
+            <div className="user-profile-content">
+              <h3 className="user-historial-title">Historial de turnos</h3>
+              {error && <div className="profile-message error">{error}</div>}
+              {loadingHistorial ? (
+                <p className="user-historial-loading">Cargando...</p>
+              ) : historial.length === 0 ? (
+                <p className="user-historial-empty">No tenés turnos registrados.</p>
+              ) : (
+                <ul className="user-historial-list">
+                  {historial.map((item) => (
+                    <li key={item.id || `${item.establecimiento}-${item.fecha}-${item.hora}`} className="user-historial-item">
+                      <span className="user-historial-establecimiento">{item.establecimiento || '—'}</span>
+                      <span className="user-historial-fecha">{formatFecha(item.fecha)} {item.hora || ''}</span>
+                      <span className="user-historial-servicio">{item.servicioNombre || '—'}</span>
+                      <span className="user-historial-profesional">{item.profesionalNombre || '—'}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button
+                type="button"
+                className="profile-action-btn logout-btn user-historial-volver"
+                onClick={() => setShowHistorial(false)}
+              >
+                Volver
+              </button>
+            </div>
+            )}
           </>
         ) : (
           <>

@@ -3,6 +3,7 @@ package com.maxturnos.controller;
 import com.maxturnos.dto.ApiResponse;
 import com.maxturnos.dto.CancelarReservaRequest;
 import com.maxturnos.dto.EnviarEmailRequest;
+import com.maxturnos.dto.ModificarReservaRequest;
 import com.maxturnos.dto.ReservaRequest;
 import com.maxturnos.model.Negocio;
 import com.maxturnos.model.Reserva;
@@ -22,9 +23,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -76,10 +79,6 @@ public class ReservaController {
                         cal.set(Calendar.SECOND, 0);
                         cal.set(Calendar.MILLISECOND, 0);
                         fechaNormalizada = cal.getTime();
-                        
-                        System.out.println("📅 Fecha recibida (string): " + fechaStr);
-                        System.out.println("📅 Fecha parseada: " + fechaNormalizada);
-                        System.out.println("   Año: " + año + ", Mes: " + (mes + 1) + ", Día: " + dia);
                     } else {
                         throw new RuntimeException("Formato de fecha inválido. Se espera YYYY-MM-DD");
                     }
@@ -128,6 +127,22 @@ public class ReservaController {
             reserva.setDuracionMinutos(duracionMinutos);
             
             Reserva nuevaReserva = reservaService.crearReserva(reserva);
+
+            // Agregar al historial de turnos del usuario en su documento
+            if (usuario != null) {
+                Usuario.ReservaEnHistorial item = new Usuario.ReservaEnHistorial();
+                item.setId(nuevaReserva.getId());
+                item.setEstablecimiento(nuevaReserva.getEstablecimiento());
+                item.setFecha(nuevaReserva.getFecha());
+                item.setHora(nuevaReserva.getHora());
+                item.setServicioNombre(nuevaReserva.getServicio() != null ? nuevaReserva.getServicio().getName() : null);
+                item.setProfesionalNombre(nuevaReserva.getProfesional() != null ? nuevaReserva.getProfesional().getName() : null);
+                if (usuario.getHistorialReservas() == null) {
+                    usuario.setHistorialReservas(new ArrayList<>());
+                }
+                usuario.getHistorialReservas().add(item);
+                usuarioRepository.save(usuario);
+            }
             
             // Enviar emails de confirmación de forma asíncrona (no bloquea la respuesta)
             // Usar un hilo separado para no bloquear la respuesta al cliente
@@ -233,15 +248,11 @@ public class ReservaController {
                             asuntoNegocio,
                             mensajeNegocio
                         );
-                    } else {
-                        System.out.println("⚠️ No se encontró el email del negocio para: " + reservaFinal.getEstablecimiento());
                     }
                 } catch (Exception e) {
-                    // No fallar la creación de la reserva si hay error al enviar emails
-                    System.err.println("Error al enviar emails de confirmación: " + e.getMessage());
-                    e.printStackTrace();
+                    // No bloquear si falla el envío del email en segundo plano
                 }
-            }).start(); // Iniciar el hilo de forma asíncrona
+            }).start();
             
             // Devolver respuesta inmediatamente sin esperar el envío de emails
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -285,13 +296,8 @@ public class ReservaController {
                         cal.set(Calendar.SECOND, 0);
                         cal.set(Calendar.MILLISECOND, 0);
                         fechaDate = cal.getTime();
-                        
-                        System.out.println("📅 Fecha recibida (string): " + fechaStr);
-                        System.out.println("📅 Fecha parseada: " + fechaDate);
-                        System.out.println("   Año: " + año + ", Mes: " + (mes + 1) + ", Día: " + dia);
                     }
                 } catch (Exception e) {
-                    System.err.println("Error al parsear la fecha: " + e.getMessage());
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(ApiResponse.error("Formato de fecha inválido. Se espera YYYY-MM-DD"));
                 }
@@ -300,7 +306,6 @@ public class ReservaController {
             List<Reserva> reservas = reservaService.obtenerReservas(establecimiento, fechaDate, profesionalId);
             return ResponseEntity.ok(ApiResponse.success(reservas));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Error al obtener reservas: " + e.getMessage()));
         }
@@ -354,10 +359,6 @@ public class ReservaController {
                         cal.set(Calendar.SECOND, 0);
                         cal.set(Calendar.MILLISECOND, 0);
                         fechaNormalizada = cal.getTime();
-                        
-                        System.out.println("📅 [Horarios Disponibles] Fecha recibida (string): " + fechaStr);
-                        System.out.println("📅 [Horarios Disponibles] Fecha parseada: " + fechaNormalizada);
-                        System.out.println("📅 [Horarios Disponibles] Profesional ID: " + profesionalId);
                     } else {
                         throw new RuntimeException("Formato de fecha inválido. Se espera YYYY-MM-DD");
                     }
@@ -435,6 +436,45 @@ public class ReservaController {
                 .body(ApiResponse.error("Error al cancelar reserva: " + e.getMessage()));
         }
     }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> modificarReserva(
+            @PathVariable String id,
+            @RequestParam String establecimiento,
+            @RequestBody ModificarReservaRequest request) {
+        try {
+            if (request == null || request.getFecha() == null || request.getFecha().trim().isEmpty()
+                    || request.getHora() == null || request.getHora().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("fecha y hora son requeridos"));
+            }
+            String fechaStr = request.getFecha().trim();
+            String[] partes = fechaStr.split("-");
+            if (partes.length != 3) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Formato de fecha inválido. Se espera YYYY-MM-DD"));
+            }
+            int año = Integer.parseInt(partes[0]);
+            int mes = Integer.parseInt(partes[1]) - 1;
+            int dia = Integer.parseInt(partes[2]);
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.YEAR, año);
+            cal.set(Calendar.MONTH, mes);
+            cal.set(Calendar.DAY_OF_MONTH, dia);
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            Date fechaDate = cal.getTime();
+            String hora = request.getHora().trim();
+            negocioDataService.updateReserva(establecimiento, id, "fecha", fechaDate);
+            negocioDataService.updateReserva(establecimiento, id, "hora", hora);
+            return ResponseEntity.ok(ApiResponse.success("Turno modificado correctamente"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al modificar reserva: " + e.getMessage()));
+        }
+    }
     
     @PostMapping("/{id}/enviar-email")
     public ResponseEntity<ApiResponse<String>> enviarEmailACliente(
@@ -467,6 +507,110 @@ public class ReservaController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Error al enviar email: " + e.getMessage()));
         }
+    }
+
+    /**
+     * Lista de clientes únicos que tienen al menos una reserva (activa o histórica) en el establecimiento.
+     */
+    @GetMapping("/clientes")
+    public ResponseEntity<ApiResponse<List<Map<String, String>>>> getClientes(@RequestParam String establecimiento) {
+        try {
+            List<NegocioData.ReservaData> reservas = negocioDataService.getReservas(establecimiento);
+            List<NegocioData.ReservaHistoricaData> historicas = negocioDataService.getReservasHistoricas(establecimiento);
+
+            Map<String, Map<String, String>> porEmail = new LinkedHashMap<>();
+            for (NegocioData.ReservaData r : reservas) {
+                if (r.getUsuarioEmail() == null || r.getUsuarioEmail().isEmpty()) continue;
+                String email = r.getUsuarioEmail().toLowerCase().trim();
+                porEmail.putIfAbsent(email, new HashMap<>());
+                Map<String, String> c = porEmail.get(email);
+                c.put("email", email);
+                c.put("nombre", r.getUsuarioNombre() != null ? r.getUsuarioNombre() : "");
+                c.put("apellido", r.getUsuarioApellido() != null ? r.getUsuarioApellido() : "");
+            }
+            for (NegocioData.ReservaHistoricaData r : historicas) {
+                if (r.getUsuarioEmail() == null || r.getUsuarioEmail().isEmpty()) continue;
+                String email = r.getUsuarioEmail().toLowerCase().trim();
+                porEmail.putIfAbsent(email, new HashMap<>());
+                Map<String, String> c = porEmail.get(email);
+                c.put("email", email);
+                c.put("nombre", r.getUsuarioNombre() != null ? r.getUsuarioNombre() : "");
+                c.put("apellido", r.getUsuarioApellido() != null ? r.getUsuarioApellido() : "");
+            }
+
+            List<Map<String, String>> clientes = new ArrayList<>(porEmail.values());
+            return ResponseEntity.ok(ApiResponse.success("OK", clientes));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al listar clientes: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Historial de turnos de un cliente (email) en el establecimiento: reservas activas + históricas, ordenado por fecha descendente.
+     */
+    @GetMapping("/clientes/{email}/historial")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getHistorialCliente(
+            @PathVariable String email,
+            @RequestParam String establecimiento) {
+        try {
+            String emailLower = email != null ? email.toLowerCase().trim() : "";
+            if (emailLower.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Email requerido"));
+            }
+
+            List<NegocioData.ReservaData> reservas = negocioDataService.getReservas(establecimiento);
+            List<NegocioData.ReservaHistoricaData> historicas = negocioDataService.getReservasHistoricas(establecimiento);
+
+            List<Map<String, Object>> items = new ArrayList<>();
+            reservas.stream()
+                .filter(r -> emailLower.equals(r.getUsuarioEmail() != null ? r.getUsuarioEmail().toLowerCase().trim() : null))
+                .forEach(r -> items.add(toMapReserva(r, true)));
+            historicas.stream()
+                .filter(r -> emailLower.equals(r.getUsuarioEmail() != null ? r.getUsuarioEmail().toLowerCase().trim() : null))
+                .forEach(r -> items.add(toMapReservaHistorica(r, false)));
+
+            items.sort((a, b) -> {
+                Date fa = (Date) a.get("fecha");
+                Date fb = (Date) b.get("fecha");
+                if (fa == null && fb == null) return 0;
+                if (fa == null) return 1;
+                if (fb == null) return -1;
+                int cmp = fb.compareTo(fa);
+                if (cmp != 0) return cmp;
+                String ha = (String) a.get("hora");
+                String hb = (String) b.get("hora");
+                return (hb != null ? hb : "").compareTo(ha != null ? ha : "");
+            });
+
+            return ResponseEntity.ok(ApiResponse.success("OK", items));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al obtener historial: " + e.getMessage()));
+        }
+    }
+
+    private Map<String, Object> toMapReserva(NegocioData.ReservaData r, boolean activa) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", r.getId());
+        m.put("fecha", r.getFecha());
+        m.put("hora", r.getHora());
+        m.put("servicioNombre", r.getServicio() != null ? r.getServicio().getName() : null);
+        m.put("profesionalNombre", r.getProfesional() != null ? r.getProfesional().getName() : null);
+        m.put("activa", activa);
+        return m;
+    }
+
+    private Map<String, Object> toMapReservaHistorica(NegocioData.ReservaHistoricaData r, boolean activa) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", r.getId());
+        m.put("fecha", r.getFecha());
+        m.put("hora", r.getHora());
+        m.put("servicioNombre", r.getServicio() != null ? r.getServicio().getName() : null);
+        m.put("profesionalNombre", r.getProfesional() != null ? r.getProfesional().getName() : null);
+        m.put("activa", activa);
+        return m;
     }
 }
 

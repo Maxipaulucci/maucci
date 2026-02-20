@@ -23,7 +23,10 @@ import java.util.List;
 public class NegocioData {
     
     @Id
-    private String id; // Será el código del negocio
+    private String id; // Será el código del negocio (ej. barberia_clasica)
+
+    /** Email del usuario admin que registró este negocio. Vincula usuario.nombreNegocio ↔ documento.id y usuario.email ↔ mailAsociado. */
+    private String mailAsociado;
     
     // ========== RESERVAS ==========
     private List<ReservaData> reservas = new ArrayList<>();
