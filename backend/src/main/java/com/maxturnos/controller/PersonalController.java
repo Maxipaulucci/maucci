@@ -130,6 +130,7 @@ public class PersonalController {
             nuevoPersonalData.setRol(personalData.getRol());
             nuevoPersonalData.setAvatar(personalData.getAvatar());
             nuevoPersonalData.setSpecialties(personalData.getSpecialties());
+            nuevoPersonalData.setTituloCertificado(personalData.getTituloCertificado());
             nuevoPersonalData.setActivo(true);
 
             negocioDataService.addPersonal(establecimiento, nuevoPersonalData);
@@ -173,13 +174,12 @@ public class PersonalController {
             personal.setRol(personalData.getRol());
             personal.setAvatar(personalData.getAvatar());
             personal.setSpecialties(personalData.getSpecialties());
+            personal.setTituloCertificado(personalData.getTituloCertificado());
 
-            // Actualizar usando el servicio
-            negocioDataService.updatePersonal(establecimiento, personal.getId(), "nombre", personal.getNombre());
-            negocioDataService.updatePersonal(establecimiento, personal.getId(), "rol", personal.getRol());
-            negocioDataService.updatePersonal(establecimiento, personal.getId(), "avatar", personal.getAvatar());
-            negocioDataService.updatePersonal(establecimiento, personal.getId(), "specialties",
-                    personal.getSpecialties());
+            // Persistir todos los campos en una sola escritura (incluye tituloCertificado)
+            negocioDataService.updatePersonalCompleto(establecimiento, idPersonal,
+                    personal.getNombre(), personal.getRol(), personal.getAvatar(),
+                    personal.getSpecialties(), personal.getTituloCertificado());
 
             Personal personalActualizado = ModelConverter.personalDataToPersonal(personal, establecimiento);
 
@@ -219,15 +219,12 @@ public class PersonalController {
         }
     }
 
-    // Eliminar (desactivar) miembro del personal
+    // Eliminar miembro del personal (quitar del array en la base de datos)
     @DeleteMapping("/{establecimiento}/{idPersonal}")
     public ResponseEntity<ApiResponse<Void>> eliminarPersonal(
             @PathVariable String establecimiento,
             @PathVariable Integer idPersonal) {
         try {
-            // Primero, desactivar duplicados si existen
-            desactivarDuplicados(establecimiento, idPersonal);
-
             Optional<NegocioData.PersonalData> personalOpt = negocioDataService
                     .findPersonalByIdPersonal(establecimiento, idPersonal);
 
@@ -267,8 +264,8 @@ public class PersonalController {
                 }
             }
 
-            // Desactivar el miembro del personal inmediatamente
-            negocioDataService.updatePersonal(establecimiento, personal.getId(), "activo", false);
+            // Eliminar el miembro del personal del array en la base de datos
+            negocioDataService.removePersonal(establecimiento, personal.getId());
 
             // Enviar emails en segundo plano (no bloquea la respuesta)
             if (!reservasParaEmails.isEmpty()) {

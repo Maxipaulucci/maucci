@@ -45,11 +45,25 @@ public class NegocioController {
             
             if (negocioOpt.isPresent()) {
                 Negocio negocio = negocioOpt.get();
-                // Enriquecer con categorías desde la colección del negocio (NegocioData)
+                // Enriquecer con categorías y bloques de horario desde la colección del negocio (NegocioData)
                 List<String> categoriasData = negocioDataService.getCategorias(codigoLower);
                 if (categoriasData != null && !categoriasData.isEmpty()) {
                     negocio.setCategorias(categoriasData);
                 }
+                List<com.maxturnos.model.NegocioData.BloqueHorarioData> bloquesData = negocioDataService.getBloquesHorario(codigoLower);
+                List<Negocio.BloqueHorario> bloques = new java.util.ArrayList<>();
+                if (bloquesData != null) {
+                    for (com.maxturnos.model.NegocioData.BloqueHorarioData b : bloquesData) {
+                        Negocio.BloqueHorario bh = new Negocio.BloqueHorario();
+                        bh.setId(b.getId());
+                        bh.setDias(b.getDias() != null ? new java.util.ArrayList<>(b.getDias()) : new java.util.ArrayList<>());
+                        bh.setInicio(b.getInicio());
+                        bh.setFin(b.getFin());
+                        bh.setIntervalo(b.getIntervalo());
+                        bloques.add(bh);
+                    }
+                }
+                negocio.setBloquesHorario(bloques);
                 return ResponseEntity.ok(ApiResponse.success(negocio));
             }
             
@@ -143,6 +157,43 @@ public class NegocioController {
             
             negocioDataService.setHorarios(codigoLower, horarios);
             
+            if (request.containsKey("bloquesHorario")) {
+                Object rawList = request.get("bloquesHorario");
+                List<Negocio.BloqueHorario> bloques = new java.util.ArrayList<>();
+                if (rawList instanceof List) {
+                    for (Object item : (List<?>) rawList) {
+                        if (!(item instanceof Map)) continue;
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> m = (Map<String, Object>) item;
+                        Negocio.BloqueHorario bh = new Negocio.BloqueHorario();
+                        if (m.containsKey("id")) bh.setId(m.get("id") != null ? m.get("id").toString() : null);
+                        if (m.containsKey("dias") && m.get("dias") instanceof List) {
+                            List<Integer> dias = new java.util.ArrayList<>();
+                            for (Object o : (List<?>) m.get("dias")) {
+                                if (o instanceof Number) dias.add(((Number) o).intValue());
+                            }
+                            bh.setDias(dias);
+                        } else {
+                            bh.setDias(new java.util.ArrayList<>());
+                        }
+                        bh.setInicio(m.containsKey("inicio") && m.get("inicio") != null ? m.get("inicio").toString() : "09:00");
+                        bh.setFin(m.containsKey("fin") && m.get("fin") != null ? m.get("fin").toString() : "20:00");
+                        if (m.containsKey("intervalo") && m.get("intervalo") != null) {
+                            Object i = m.get("intervalo");
+                            try {
+                                bh.setIntervalo(i instanceof Number ? ((Number) i).intValue() : Integer.parseInt(i.toString()));
+                            } catch (NumberFormatException ignored) {
+                                bh.setIntervalo(30);
+                            }
+                        } else {
+                            bh.setIntervalo(30);
+                        }
+                        bloques.add(bh);
+                    }
+                }
+                negocioDataService.setBloquesHorario(codigoLower, bloques);
+            }
+            
             Negocio respuesta = new Negocio();
             respuesta.setCodigo(codigoLower);
             respuesta.setHorarios(horarios);
@@ -150,6 +201,33 @@ public class NegocioController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Error al actualizar horarios: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{codigo}/dias-disponibles")
+    public ResponseEntity<ApiResponse<Negocio>> actualizarDiasDisponibles(
+            @PathVariable String codigo,
+            @RequestBody Map<String, Object> request) {
+        try {
+            String codigoLower = codigo.toLowerCase();
+            Object diasObj = request.get("diasDisponibles");
+            if (diasObj == null || !(diasObj instanceof List)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("El campo 'diasDisponibles' es requerido y debe ser un array"));
+            }
+            List<?> raw = (List<?>) diasObj;
+            List<Integer> diasDisponibles = new java.util.ArrayList<>();
+            for (Object o : raw) {
+                if (o instanceof Number) diasDisponibles.add(((Number) o).intValue());
+            }
+            negocioDataService.setDiasDisponibles(codigoLower, diasDisponibles);
+            Negocio respuesta = new Negocio();
+            respuesta.setCodigo(codigoLower);
+            respuesta.setDiasDisponibles(diasDisponibles);
+            return ResponseEntity.ok(ApiResponse.success("Días disponibles actualizados exitosamente", respuesta));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al actualizar días disponibles: " + e.getMessage()));
         }
     }
     

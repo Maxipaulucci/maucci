@@ -148,14 +148,15 @@ public class ReservaService {
             Date fecha,
             Integer profesionalId,
             Integer duracionMinutos) {
-        Negocio negocio = negocioDataService.getNegocioConfig(establecimientoCodigo);
+        // Una sola carga del documento del negocio (reservas + config horarios)
+        NegocioData data = negocioDataService.getOrCreate(establecimientoCodigo);
         Calendar calFecha = Calendar.getInstance();
         calFecha.setTime(fecha);
         int diaSemanaCalendar = calFecha.get(Calendar.DAY_OF_WEEK); // 1 = Domingo, 2 = Lunes, ..., 7 = Sábado
-        // Convertir a formato 0-6 (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
         int diaSemana = diaSemanaCalendar == Calendar.SUNDAY ? 0 : diaSemanaCalendar - 1;
-        if (negocio.getDiasDisponibles() != null && !negocio.getDiasDisponibles().isEmpty()) {
-            if (!negocio.getDiasDisponibles().contains(diaSemana)) {
+        List<Integer> diasDisponibles = data.getDiasDisponibles();
+        if (diasDisponibles != null && !diasDisponibles.isEmpty()) {
+            if (!diasDisponibles.contains(diaSemana)) {
                 Map<String, Object> resultado = new HashMap<>();
                 resultado.put("horariosDisponibles", new ArrayList<>());
                 resultado.put("horariosBloqueados", new ArrayList<>());
@@ -163,16 +164,33 @@ public class ReservaService {
             }
         }
         
-        Integer intervalo = negocio.getHorarios().getIntervalo();
-        String inicio = negocio.getHorarios().getInicio();
-        String fin = negocio.getHorarios().getFin();
+        Integer intervalo;
+        String inicio;
+        String fin;
         
-        // Ajustar hora límite según el día de la semana
-        // Sábado (6) hasta las 18:00, lunes a viernes (1-5) hasta las 20:00
-        if (diaSemana == 6) { // Sábado
-            fin = "18:00";
-        } else if (diaSemana >= 1 && diaSemana <= 5) { // Lunes a viernes
-            fin = "20:00";
+        List<NegocioData.BloqueHorarioData> bloques = data.getBloquesHorario();
+        if (bloques != null && !bloques.isEmpty()) {
+            NegocioData.BloqueHorarioData bloqueDelDia = null;
+            for (NegocioData.BloqueHorarioData b : bloques) {
+                if (b.getDias() != null && b.getDias().contains(diaSemana)) {
+                    bloqueDelDia = b;
+                    break;
+                }
+            }
+            if (bloqueDelDia == null) {
+                Map<String, Object> resultado = new HashMap<>();
+                resultado.put("horariosDisponibles", new ArrayList<>());
+                resultado.put("horariosBloqueados", new ArrayList<>());
+                return resultado;
+            }
+            inicio = bloqueDelDia.getInicio() != null ? bloqueDelDia.getInicio() : "09:00";
+            fin = bloqueDelDia.getFin() != null ? bloqueDelDia.getFin() : "20:00";
+            intervalo = bloqueDelDia.getIntervalo() != null ? bloqueDelDia.getIntervalo() : 30;
+        } else {
+            NegocioData.HorariosConfigData defaultHorarios = data.getHorarios() != null ? data.getHorarios() : new NegocioData.HorariosConfigData();
+            inicio = defaultHorarios.getInicio() != null ? defaultHorarios.getInicio() : "09:00";
+            fin = defaultHorarios.getFin() != null ? defaultHorarios.getFin() : "20:00";
+            intervalo = defaultHorarios.getIntervalo() != null ? defaultHorarios.getIntervalo() : 30;
         }
         Calendar cal = Calendar.getInstance();
         cal.setTime(fecha);
@@ -187,8 +205,7 @@ public class ReservaService {
         cal.set(Calendar.SECOND, 59);
         Date fechaFin = cal.getTime();
         
-        // Obtener reservas del día para el profesional
-        List<NegocioData.ReservaData> reservasData = negocioDataService.getReservas(establecimientoCodigo);
+        List<NegocioData.ReservaData> reservasData = data.getReservas() != null ? data.getReservas() : new ArrayList<>();
         Calendar calFechaFiltro = Calendar.getInstance();
         calFechaFiltro.setTime(fecha);
         int añoFiltro = calFechaFiltro.get(Calendar.YEAR);
@@ -240,8 +257,8 @@ public class ReservaService {
                 int inicioMinutos = Integer.parseInt(partes[0]) * 60 + Integer.parseInt(partes[1]);
                 int finMinutos = inicioMinutos + duracionMinutos;
                 
-                // Verificar que no exceda el horario de cierre
-                if (finMinutos > finTotalMinutos) {
+                // Incluir todo slot que empiece antes o a la hora de cierre (el último slot es la hora de cierre)
+                if (inicioMinutos > finTotalMinutos) {
                     return false;
                 }
                 

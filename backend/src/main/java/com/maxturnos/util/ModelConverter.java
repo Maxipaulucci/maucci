@@ -180,6 +180,7 @@ public class ModelConverter {
         data.setRol(personal.getRol());
         data.setAvatar(personal.getAvatar());
         data.setSpecialties(personal.getSpecialties());
+        data.setTituloCertificado(personal.getTituloCertificado());
         data.setFechaCreacion(personal.getFechaCreacion());
         data.setActivo(personal.getActivo());
         return data;
@@ -194,6 +195,7 @@ public class ModelConverter {
         personal.setRol(data.getRol());
         personal.setAvatar(data.getAvatar());
         personal.setSpecialties(data.getSpecialties());
+        personal.setTituloCertificado(data.getTituloCertificado());
         personal.setFechaCreacion(data.getFechaCreacion());
         personal.setActivo(data.getActivo());
         return personal;

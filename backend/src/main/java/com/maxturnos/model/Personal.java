@@ -31,6 +31,9 @@ public class Personal {
     private String avatar; // URL o base64 de la imagen
     
     private List<String> specialties; // Cualidades/especialidades
+
+    /** Texto del certificado/badge en la tarjeta pública (ej. "Experto"). Si es null o vacío, no se muestra. */
+    private String tituloCertificado;
     
     private LocalDateTime fechaCreacion = LocalDateTime.now();
     

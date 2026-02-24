@@ -6,6 +6,7 @@ import com.maxturnos.repository.NegocioDataRepository;
 import com.maxturnos.repository.NegocioRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -163,6 +164,26 @@ public class NegocioDataService {
     public void updatePersonal(String negocioCodigo, String personalId, String field, Object value) {
         negocioDataRepository.updateArrayElement(negocioCodigo, "personal", "id", personalId, field, value);
     }
+
+    /**
+     * Actualiza un miembro del personal reemplazando el array completo (persiste todos los campos incluido tituloCertificado).
+     */
+    public void updatePersonalCompleto(String negocioCodigo, Integer idPersonal,
+            String nombre, String rol, String avatar, List<String> specialties, String tituloCertificado) {
+        List<NegocioData.PersonalData> lista = getPersonal(negocioCodigo);
+        if (lista == null) return;
+        for (NegocioData.PersonalData p : lista) {
+            if (idPersonal.equals(p.getIdPersonal())) {
+                p.setNombre(nombre);
+                p.setRol(rol);
+                p.setAvatar(avatar);
+                p.setSpecialties(specialties != null ? specialties : new ArrayList<>());
+                p.setTituloCertificado(tituloCertificado);
+                break;
+            }
+        }
+        negocioDataRepository.replaceArray(negocioCodigo, "personal", lista);
+    }
     
     /**
      * Reordena el personal según la lista de idPersonal (orden de visualización).
@@ -281,6 +302,36 @@ public class NegocioDataService {
         data.setHorarios(h);
         negocioDataRepository.save(negocioCodigo, data);
     }
+
+    public List<NegocioData.BloqueHorarioData> getBloquesHorario(String negocioCodigo) {
+        NegocioData data = getOrCreate(negocioCodigo);
+        List<NegocioData.BloqueHorarioData> list = data.getBloquesHorario();
+        return list != null ? list : new ArrayList<>();
+    }
+
+    public void setBloquesHorario(String negocioCodigo, List<Negocio.BloqueHorario> bloques) {
+        NegocioData data = getOrCreate(negocioCodigo);
+        List<NegocioData.BloqueHorarioData> list = new ArrayList<>();
+        if (bloques != null) {
+            for (Negocio.BloqueHorario b : bloques) {
+                NegocioData.BloqueHorarioData d = new NegocioData.BloqueHorarioData();
+                d.setId(b.getId());
+                d.setDias(b.getDias() != null ? new ArrayList<>(b.getDias()) : new ArrayList<>());
+                d.setInicio(b.getInicio() != null ? b.getInicio() : "09:00");
+                d.setFin(b.getFin() != null ? b.getFin() : "20:00");
+                d.setIntervalo(b.getIntervalo() != null ? b.getIntervalo() : 30);
+                list.add(d);
+            }
+        }
+        data.setBloquesHorario(list);
+        negocioDataRepository.save(negocioCodigo, data);
+    }
+
+    public void setDiasDisponibles(String negocioCodigo, List<Integer> diasDisponibles) {
+        NegocioData data = getOrCreate(negocioCodigo);
+        data.setDiasDisponibles(diasDisponibles != null ? diasDisponibles : new ArrayList<>());
+        negocioDataRepository.save(negocioCodigo, data);
+    }
     
     /**
      * Obtiene la configuración del negocio: desde la colección global o, si no existe,
@@ -304,6 +355,20 @@ public class NegocioDataService {
         n.setDiasDisponibles(data.getDiasDisponibles() != null && !data.getDiasDisponibles().isEmpty()
             ? data.getDiasDisponibles()
             : Arrays.asList(1, 2, 3, 4, 5, 6));
+        List<NegocioData.BloqueHorarioData> bloquesData = data.getBloquesHorario();
+        List<Negocio.BloqueHorario> bloques = new ArrayList<>();
+        if (bloquesData != null) {
+            for (NegocioData.BloqueHorarioData b : bloquesData) {
+                Negocio.BloqueHorario bh = new Negocio.BloqueHorario();
+                bh.setId(b.getId());
+                bh.setDias(b.getDias() != null ? new ArrayList<>(b.getDias()) : new ArrayList<>());
+                bh.setInicio(b.getInicio());
+                bh.setFin(b.getFin());
+                bh.setIntervalo(b.getIntervalo());
+                bloques.add(bh);
+            }
+        }
+        n.setBloquesHorario(bloques);
         return n;
     }
     

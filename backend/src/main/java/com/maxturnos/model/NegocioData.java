@@ -53,6 +53,9 @@ public class NegocioData {
     // ========== CONFIGURACIÓN DE HORARIOS (inicio/fin/intervalo) ==========
     private HorariosConfigData horarios = new HorariosConfigData();
     
+    /** Bloques de horario por grupo de días (añadidos desde el panel). Cada uno tiene dias, inicio, fin, intervalo. */
+    private List<BloqueHorarioData> bloquesHorario = new ArrayList<>();
+    
     // ========== DÍAS DISPONIBLES (0=Domingo ... 6=Sábado) ==========
     private List<Integer> diasDisponibles;
     
@@ -65,6 +68,17 @@ public class NegocioData {
         private String inicio = "09:00";
         private String fin = "20:00";
         private Integer intervalo = 30;
+    }
+    
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BloqueHorarioData {
+        private String id;
+        private List<Integer> dias;
+        private String inicio;
+        private String fin;
+        private Integer intervalo;
     }
     
     @Data
@@ -148,6 +162,8 @@ public class NegocioData {
         private String rol;
         private String avatar;
         private List<String> specialties;
+        /** Texto del certificado/badge en la tarjeta (ej. "Experto"). Si es null o vacío, no se muestra. */
+        private String tituloCertificado;
         private LocalDateTime fechaCreacion = LocalDateTime.now();
         private Boolean activo = true;
     }

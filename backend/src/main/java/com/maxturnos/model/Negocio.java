@@ -26,6 +26,9 @@ public class Negocio {
     
     private HorariosConfig horarios;
     
+    /** Bloques de horario por grupo de días (desde el panel de negocio). */
+    private List<BloqueHorario> bloquesHorario;
+    
     private List<Integer> diasDisponibles; // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
     
     private String ordenResenas; // "antigua-reciente", "reciente-antigua", "mayor-menor", "menor-mayor"
@@ -43,6 +46,17 @@ public class Negocio {
         private String inicio = "09:00";
         private String fin = "20:00";
         private Integer intervalo = 30; // minutos entre turnos
+    }
+    
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BloqueHorario {
+        private String id;
+        private List<Integer> dias;
+        private String inicio;
+        private String fin;
+        private Integer intervalo;
     }
 }
 
