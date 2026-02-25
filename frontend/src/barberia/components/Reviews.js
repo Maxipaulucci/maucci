@@ -2,9 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { FaStar, FaQuoteLeft, FaQuoteRight, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { resenasService } from '../../services/api';
+import { barberiaCache } from '../data/barberiaCache';
 import ResenaModal from '../../components/shared/ResenaModal';
 import ResenaCompletaModal from '../../components/shared/ResenaCompletaModal';
 import './Reviews.css';
+
+const NEGOCIO_CODIGO = 'barberia_clasica';
+
+function formatResenas(resenasData) {
+  if (!Array.isArray(resenasData)) return [];
+  return resenasData.map((resena) => ({
+    id: resena.id,
+    name: resena.usuarioNombre && resena.usuarioApellido
+      ? `${resena.usuarioNombre} ${resena.usuarioApellido}`
+      : (resena.usuarioEmail || '').split('@')[0],
+    rating: resena.rating,
+    comment: resena.texto || '',
+    date: new Date(resena.fechaCreacion).toLocaleDateString('es-AR', {
+      day: 'numeric',
+      month: 'long'
+    }),
+    time: new Date(resena.fechaCreacion).toLocaleTimeString('es-AR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }));
+}
 
 const Reviews = () => {
   const { isAuthenticated, user } = useAuth();
@@ -19,41 +42,27 @@ const Reviews = () => {
   const reviewsPerPage = 3;
   const MAX_CHARACTERS = 53; // Máximo de caracteres antes de truncar
 
-  // Cargar reseñas aprobadas desde el backend
+  // Cargar reseñas: mostrar caché al instante si existe, luego refrescar en segundo plano
   useEffect(() => {
-    cargarResenasAprobadas();
+    const cached = barberiaCache.getResenas(NEGOCIO_CODIGO);
+    const fromCache = cached && Array.isArray(cached);
+    if (fromCache) {
+      setReviews(formatResenas(cached));
+      setIsLoadingReviews(false);
+    }
+    cargarResenasAprobadas(fromCache);
   }, []);
 
-  const cargarResenasAprobadas = async () => {
-    setIsLoadingReviews(true);
+  const cargarResenasAprobadas = async (backgroundRefresh = false) => {
+    if (!backgroundRefresh) setIsLoadingReviews(true);
     try {
-      // Por ahora usamos "barberia_clasica" como código, pero debería obtenerse dinámicamente
-      const negocioCodigo = 'barberia_clasica';
-      const response = await resenasService.obtenerResenasPublicas(negocioCodigo);
+      const response = await resenasService.obtenerResenasPublicas(NEGOCIO_CODIGO);
       const resenasData = response.data || [];
-      
-      // Convertir las reseñas del backend al formato esperado por el componente
-      const reviewsFormatted = resenasData.map((resena) => ({
-        id: resena.id,
-        name: resena.usuarioNombre && resena.usuarioApellido 
-          ? `${resena.usuarioNombre} ${resena.usuarioApellido}`
-          : resena.usuarioEmail.split('@')[0], // Usar parte del email si no hay nombre
-        rating: resena.rating,
-        comment: resena.texto || '',
-        date: new Date(resena.fechaCreacion).toLocaleDateString('es-AR', { 
-          day: 'numeric', 
-          month: 'long' 
-        }),
-        time: new Date(resena.fechaCreacion).toLocaleTimeString('es-AR', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        })
-      }));
-      
+      const reviewsFormatted = formatResenas(resenasData);
       setReviews(reviewsFormatted);
+      barberiaCache.setResenas(NEGOCIO_CODIGO, resenasData);
     } catch (err) {
       console.error('Error al cargar reseñas:', err);
-      // Si hay error, usar array vacío
       setReviews([]);
     } finally {
       setIsLoadingReviews(false);
@@ -116,10 +125,7 @@ const Reviews = () => {
     if (!user || !user.email) {
       throw new Error('Debes estar autenticado para enviar una reseña');
     }
-    // Obtener el código del negocio desde la URL o datos del negocio
-    // Por ahora usamos "barberia_clasica" como código por defecto
-    const negocioCodigo = 'barberia_clasica'; // TODO: Obtener dinámicamente según el negocio
-    await resenasService.crearResena(negocioCodigo, user.email, rating, resena);
+    await resenasService.crearResena(NEGOCIO_CODIGO, user.email, rating, resena);
     
     // Cerrar el modal
     setIsResenaModalOpen(false);
@@ -272,18 +278,22 @@ const Reviews = () => {
         </div>
         )}
 
-        {/* Call to action */}
+        {/* Call to action - mismo estilo que Acerca de */}
         <div className="reviews-cta">
-          <h3>¿Tuviste una gran experiencia?</h3>
-          <p>Ayúdanos compartiendo tu opinión y ayúdanos a mejorar</p>
-          {showAuthError && (
-            <div className="reviews-auth-error">
-              Debes tener la sesión iniciada para dejar una reseña
+          <div className="reviews-cta-content">
+            <h2>¿Tuviste una gran experiencia?</h2>
+            <p>Ayúdanos compartiendo tu opinión y ayúdanos a mejorar</p>
+            {showAuthError && (
+              <div className="reviews-auth-error">
+                Debes tener la sesión iniciada para dejar una reseña
+              </div>
+            )}
+            <div className="reviews-cta-actions">
+              <button className="btn btn-primary btn-lg" onClick={handleDejarResena}>
+                Dejar una Reseña
+              </button>
             </div>
-          )}
-          <button className="btn btn-primary" onClick={handleDejarResena}>
-            Dejar una Reseña
-          </button>
+          </div>
         </div>
       </div>
       <ResenaModal 

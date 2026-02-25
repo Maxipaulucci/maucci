@@ -182,6 +182,20 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.miembro-certificado {
+  margin-top: var(--spacing-sm);
+}
+
+.miembro-certificado-badge {
+  display: inline-block;
+  background-color: var(--accent-color);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 .personal-actions {
   display: flex;
   justify-content: space-between;

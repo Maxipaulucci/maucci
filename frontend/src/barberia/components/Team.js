@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FaAward } from 'react-icons/fa';
+import { FaAward, FaStar, FaUserCircle } from 'react-icons/fa';
 import { personalService } from '../../services/api';
+import { barberiaCache } from '../data/barberiaCache';
 import './Team.css';
 
 const Team = () => {
@@ -15,27 +16,37 @@ const Team = () => {
       name: p.nombre,
       role: p.rol,
       avatar: p.avatar || '/assets/img/establecimientos/barberia_ejemplo/personal/personal1.jpg',
-      specialties: p.specialties || []
+      specialties: p.specialties || [],
+      certificado: (p.tituloCertificado || '').trim() || null
     }));
   };
 
-  // Cargar personal desde el backend
+  // Cargar personal: mostrar caché al instante si existe, luego actualizar en segundo plano
   useEffect(() => {
+    const cachedRaw = barberiaCache.getPersonal(establecimiento);
+    const cached = cachedRaw && Array.isArray(cachedRaw) ? convertirPersonalABackend(cachedRaw) : [];
+    if (cached.length > 0) {
+      setTeam(cached);
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
+
     const cargarPersonal = async () => {
       try {
-        setIsLoading(true);
         const response = await personalService.obtenerPersonal(establecimiento);
         const personalData = response.data || response;
+        barberiaCache.setPersonal(establecimiento, personalData);
         const personalConvertido = convertirPersonalABackend(personalData);
         setTeam(personalConvertido);
       } catch (err) {
         console.error('Error al cargar personal:', err);
-        setTeam([]);
+        if (cached.length === 0) setTeam([]);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     cargarPersonal();
   }, [establecimiento]);
 
@@ -79,12 +90,14 @@ const Team = () => {
                 </div>
               </div>
               
-              <div className="member-footer">
-                <div className="experience-badge">
-                  <FaAward className="badge-icon" />
-                  <span>Experto</span>
+              {member.certificado && (
+                <div className="member-footer">
+                  <div className="experience-badge">
+                    <FaAward className="badge-icon" />
+                    <span>{member.certificado}</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             ))}
           </div>
@@ -96,12 +109,8 @@ const Team = () => {
             <h3>¿Por qué elegirnos?</h3>
             <div className="info-grid">
               <div className="info-item">
-                <div className="info-icon">
-                  <img 
-                    src="/assets/img/logos_genericos/medalla.png" 
-                    alt="Medalla" 
-                    className="info-icon-img"
-                  />
+                <div className="info-icon info-icon-svg">
+                  <FaAward aria-hidden />
                 </div>
                 <div className="info-content">
                   <h4>Profesionales Certificados</h4>
@@ -110,12 +119,8 @@ const Team = () => {
               </div>
               
               <div className="info-item">
-                <div className="info-icon">
-                  <img 
-                    src="/assets/img/logos_genericos/estrella.png" 
-                    alt="Estrella" 
-                    className="info-icon-img"
-                  />
+                <div className="info-icon info-icon-svg">
+                  <FaStar aria-hidden />
                 </div>
                 <div className="info-content">
                   <h4>Calidad Garantizada</h4>
@@ -124,12 +129,8 @@ const Team = () => {
               </div>
               
               <div className="info-item">
-                <div className="info-icon">
-                  <img 
-                    src="/assets/img/logos_genericos/perfil.png" 
-                    alt="Perfil" 
-                    className="info-icon-img"
-                  />
+                <div className="info-icon info-icon-svg">
+                  <FaUserCircle aria-hidden />
                 </div>
                 <div className="info-content">
                   <h4>Atención Personalizada</h4>

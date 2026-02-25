@@ -210,16 +210,28 @@
   -ms-user-select: none;
 }
 
-.info-item .info-icon {
-  width: 1.125rem;
-  height: 1.125rem;
+/* Íconos de dirección, teléfono y horario en las tarjetas de Locales Adheridos */
+.locales-adheridos .local-card .info-item {
+  align-items: center;
+}
+
+.locales-adheridos .local-card .info-item > span {
+  line-height: 1;
+  padding-top: 4px;
+}
+
+.locales-adheridos .local-card-icon,
+.locales-adheridos .info-item img.local-card-icon {
+  width: 35px !important;
+  height: 35px !important;
+  min-width: 15px !important;
+  min-height: 35px !important;
+  max-width: 35px !important;
+  max-height: 35px !important;
   flex-shrink: 0;
   object-fit: contain;
   display: block;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
+  vertical-align: middle;
 }
 
 .local-actions {

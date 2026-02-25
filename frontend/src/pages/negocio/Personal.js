@@ -25,7 +25,8 @@ const Personal = () => {
     fotoPreview: null,
     nombre: '',
     rol: '',
-    cualidades: []
+    cualidades: [],
+    certificado: '' // Texto del badge en la tarjeta (ej. "Experto"). Vacío = no mostrar
   });
   const [cualidadInput, setCualidadInput] = useState('');
 
@@ -36,7 +37,8 @@ const Personal = () => {
       name: p.nombre,
       role: p.rol,
       avatar: p.avatar || null,
-      specialties: p.specialties || []
+      specialties: p.specialties || [],
+      certificado: (p.tituloCertificado ?? p.certificado ?? '') || ''
     }));
   };
 
@@ -131,7 +133,8 @@ const Personal = () => {
       fotoPreview: miembro.avatar || null,
       nombre: miembro.name || '',
       rol: miembro.role || '',
-      cualidades: miembro.specialties || []
+      cualidades: miembro.specialties || [],
+      certificado: miembro.certificado || ''
     });
     setCualidadInput('');
     setShowAgregarModal(true);
@@ -205,7 +208,8 @@ const Personal = () => {
       fotoPreview: null,
       nombre: '',
       rol: '',
-      cualidades: []
+      cualidades: [],
+      certificado: ''
     });
     setCualidadInput('');
     setShowAgregarModal(true);
@@ -219,7 +223,8 @@ const Personal = () => {
       fotoPreview: null,
       nombre: '',
       rol: '',
-      cualidades: []
+      cualidades: [],
+      certificado: ''
     });
     setCualidadInput('');
     setError('');
@@ -297,7 +302,8 @@ const Personal = () => {
         nombre: formData.nombre.trim(),
         rol: formData.rol.trim(),
         avatar: formData.fotoPreview, // Ya validado que existe
-        specialties: formData.cualidades
+        specialties: formData.cualidades,
+        tituloCertificado: (formData.certificado || '').trim() || null
       };
 
       if (miembroAModificar) {
@@ -336,7 +342,8 @@ const Personal = () => {
         fotoPreview: null,
         nombre: '',
         rol: '',
-        cualidades: []
+        cualidades: [],
+        certificado: ''
       });
       setCualidadInput('');
       setError('');
@@ -415,6 +422,11 @@ const Personal = () => {
                             {specialty}
                           </span>
                         ))}
+                      </div>
+                    )}
+                    {miembro.certificado && (
+                      <div className="miembro-certificado">
+                        <span className="miembro-certificado-badge">{miembro.certificado}</span>
                       </div>
                     )}
                   </div>
@@ -588,6 +600,25 @@ const Personal = () => {
                   placeholder="Ingrese el rol"
                   required
                 />
+              </div>
+
+              {/* Certificado (badge en la tarjeta pública) */}
+              <div className="form-group">
+                <label htmlFor="certificado" className="form-label">
+                  Certificado / badge
+                </label>
+                <input
+                  type="text"
+                  id="certificado"
+                  name="certificado"
+                  value={formData.certificado}
+                  onChange={handleInputChange}
+                  className="form-input"
+                  placeholder="Ej: Experto. Dejar vacío para no mostrar"
+                />
+                <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '0.25rem' }}>
+                  Texto que aparece en la parte inferior de la tarjeta en la página del local (ej. &quot;Experto&quot;). Opcional.
+                </small>
               </div>
 
               {/* Cualidades */}

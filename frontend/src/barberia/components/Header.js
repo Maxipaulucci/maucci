@@ -4,10 +4,13 @@ import { FaBars, FaTimes } from 'react-icons/fa';
 import { businessInfo } from '../data/sampleData';
 import { scrollToTop } from '../../hooks/useScrollToTop';
 import { useAuth } from '../../context/AuthContext';
-import { negociosService } from '../../services/api';
+import { negociosService, servicioService, personalService, resenasService } from '../../services/api';
+import { barberiaCache } from '../data/barberiaCache';
 import AuthModal from '../../components/shared/AuthModal';
 import UserProfileModal from '../../components/shared/UserProfileModal';
 import './Header.css';
+
+const BARBERIA_ESTABLECIMIENTO = 'barberia_clasica';
 
 const Header = () => {
   const { isAuthenticated } = useAuth();
@@ -29,6 +32,27 @@ const Header = () => {
     scrollToTop();
     setIsMenuOpen(false);
   };
+
+  // Prefetch servicios y personal al estar en barbería (para que Servicios/Equipo carguen al instante)
+  useEffect(() => {
+    if (!location.pathname.startsWith('/barberia')) return;
+    servicioService.obtenerServicios(BARBERIA_ESTABLECIMIENTO).then((r) => {
+      const data = r.data ?? r;
+      if (data && Array.isArray(data)) barberiaCache.setServicios(BARBERIA_ESTABLECIMIENTO, data);
+    }).catch(() => {});
+    personalService.obtenerPersonal(BARBERIA_ESTABLECIMIENTO).then((r) => {
+      const data = r.data ?? r;
+      if (data && Array.isArray(data)) barberiaCache.setPersonal(BARBERIA_ESTABLECIMIENTO, data);
+    }).catch(() => {});
+    resenasService.obtenerResenasPublicas(BARBERIA_ESTABLECIMIENTO).then((r) => {
+      const data = r.data ?? r;
+      if (data && Array.isArray(data)) barberiaCache.setResenas(BARBERIA_ESTABLECIMIENTO, data);
+    }).catch(() => {});
+    negociosService.obtenerNegocio(BARBERIA_ESTABLECIMIENTO).then((r) => {
+      const data = r.data ?? r;
+      if (data && data.codigo) barberiaCache.setNegocio(BARBERIA_ESTABLECIMIENTO, data);
+    }).catch(() => {});
+  }, [location.pathname]);
 
   // Cargar días disponibles del negocio
   useEffect(() => {

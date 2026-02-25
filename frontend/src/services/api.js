@@ -21,9 +21,12 @@ const fetchAPI = async (endpoint, options = {}) => {
 
     return data;
   } catch (error) {
-    // Si es un error de conexión, mostrar mensaje más claro
     if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-      throw new Error('No se pudo conectar al servidor. Asegúrate de que el servidor backend esté corriendo en el puerto 5000.');
+      const esProduccion = API_BASE_URL.includes('http') && !API_BASE_URL.includes('localhost');
+      const mensaje = esProduccion
+        ? `No se pudo conectar al servidor (${API_BASE_URL}). Verifica que el backend esté en línea y CORS permita este origen.`
+        : 'No se pudo conectar al servidor. Asegúrate de que el backend esté corriendo en el puerto 5000.';
+      throw new Error(mensaje);
     }
     throw error;
   }
@@ -277,6 +280,14 @@ export const negociosService = {
     return await fetchAPI(`/negocios/${codigo}/horarios`, {
       method: 'PUT',
       body: JSON.stringify(horarios)
+    });
+  },
+
+  // Actualizar días disponibles (0=Dom, 1=Lun, ..., 6=Sab). Los no incluidos = local cerrado.
+  actualizarDiasDisponibles: async (codigo, diasDisponibles) => {
+    return await fetchAPI(`/negocios/${codigo}/dias-disponibles`, {
+      method: 'PUT',
+      body: JSON.stringify({ diasDisponibles })
     });
   },
   

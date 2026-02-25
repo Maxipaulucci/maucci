@@ -72,6 +72,172 @@ const Horarios = () => {
   const [domingosRestaurados, setDomingosRestaurados] = useState(new Set()); // Domingos restaurados manualmente para no bloquearlos
   const [reservasPorDia, setReservasPorDia] = useState({}); // Contador de reservas por día
   const [notification, setNotification] = useState(null); // Notificación para mostrar mensajes
+  const [pestañaActiva, setPestañaActiva] = useState('horarios'); // 'horarios' | 'modificar'
+
+  // Estado del formulario de horarios (pestaña Horarios)
+  const [formPrimerHorario, setFormPrimerHorario] = useState('08 00');
+  const [formUltimoHorario, setFormUltimoHorario] = useState('17 00');
+  const [formIntervalo, setFormIntervalo] = useState(15);
+  const [guardandoHorarios, setGuardandoHorarios] = useState(false);
+  // Días de la semana: 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+  const NOMBRES_DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  // diasQueAbre: array de 0-6. Si no está, ese día el local está cerrado (no aparece en la web).
+  const [diasQueAbre, setDiasQueAbre] = useState([1, 2, 3, 4, 5, 6]);
+  // diasSeleccionadosParaHorario: días marcados para el próximo bloque "Añadir horario"
+  const [diasSeleccionadosParaHorario, setDiasSeleccionadosParaHorario] = useState([]);
+  // bloquesHorario: [{ id, dias: [1,2,3], inicio, fin, intervalo }, ...]
+  const [bloquesHorario, setBloquesHorario] = useState([]);
+  const nextBloqueId = React.useRef(1);
+
+  // Días que ya están en algún bloque: no se pueden volver a marcar en la tabla
+  const diasEnBloques = React.useMemo(() => {
+    const set = new Set();
+    bloquesHorario.forEach(b => (b.dias || []).forEach(d => set.add(d)));
+    return set;
+  }, [bloquesHorario]);
+
+  // Convertir "08 00" (display) <-> "08:00" (API)
+  const horaDisplayToApi = (display) => {
+    if (!display || typeof display !== 'string') return '';
+    const limpio = display.trim().replace(/\s+/g, ' ');
+    const partes = limpio.split(' ');
+    if (partes.length >= 2) {
+      const h = partes[0].padStart(2, '0').slice(0, 2);
+      const m = partes[1].padStart(2, '0').slice(0, 2);
+      if (/^\d{2}$/.test(h) && /^\d{2}$/.test(m)) return `${h}:${m}`;
+    }
+    return '';
+  };
+  const horaApiToDisplay = (api) => {
+    if (!api || typeof api !== 'string') return '08 00';
+    const [h, m] = api.split(':');
+    if (h != null && m != null) return `${h.padStart(2, '0')} ${m.padStart(2, '0')}`;
+    return '08 00';
+  };
+
+  // Validar formato "xx xx" (00-23, 00-59)
+  const validarHoraDisplay = (display) => {
+    const api = horaDisplayToApi(display);
+    if (!api) return false;
+    const [h, m] = api.split(':').map(Number);
+    return h >= 0 && h <= 23 && m >= 0 && m <= 59;
+  };
+
+  // Generar lista de horarios cada N minutos entre inicio y fin
+  const generarHorariosPreview = (inicioDisplay, finDisplay, intervaloMin) => {
+    const inicioApi = horaDisplayToApi(inicioDisplay);
+    const finApi = horaDisplayToApi(finDisplay);
+    if (!inicioApi || !finApi || !validarHoraDisplay(inicioDisplay) || !validarHoraDisplay(finDisplay)) return [];
+    const [hIni, mIni] = inicioApi.split(':').map(Number);
+    const [hFin, mFin] = finApi.split(':').map(Number);
+    let totalMinIni = hIni * 60 + mIni;
+    let totalMinFin = hFin * 60 + mFin;
+    if (totalMinFin <= totalMinIni) return [];
+    const intervalo = Math.max(5, Math.min(120, Number(intervaloMin) || 15));
+    const slots = [];
+    for (let min = totalMinIni; min <= totalMinFin; min += intervalo) {
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    }
+    return slots;
+  };
+
+  const toggleDiaAbre = (dia) => {
+    setDiasQueAbre(prev => prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia].sort((a, b) => a - b));
+    setDiasSeleccionadosParaHorario(prev => prev.filter(d => d !== dia));
+  };
+
+  const toggleDiaSeleccionadoParaHorario = (dia) => {
+    if (!diasQueAbre.includes(dia)) return;
+    setDiasSeleccionadosParaHorario(prev =>
+      prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia].sort((a, b) => a - b)
+    );
+  };
+
+  const handleAñadirHorario = () => {
+    if (diasSeleccionadosParaHorario.length === 0) {
+      setNotification({ message: 'Seleccioná al menos un día en la tabla para este horario', type: 'error' });
+      return;
+    }
+    if (!validarHoraDisplay(formPrimerHorario) || !validarHoraDisplay(formUltimoHorario)) {
+      setNotification({ message: 'Revisá el formato de los horarios (ej: 08 00, 17 00)', type: 'error' });
+      return;
+    }
+    const inicioApi = horaDisplayToApi(formPrimerHorario);
+    const finApi = horaDisplayToApi(formUltimoHorario);
+    if (finApi <= inicioApi) {
+      setNotification({ message: 'El último horario debe ser posterior al primero', type: 'error' });
+      return;
+    }
+    const intervalo = Math.max(5, Math.min(120, Number(formIntervalo) || 15));
+    const id = nextBloqueId.current++;
+    setBloquesHorario(prev => [...prev, {
+      id,
+      dias: [...diasSeleccionadosParaHorario],
+      inicio: formPrimerHorario,
+      fin: formUltimoHorario,
+      intervalo
+    }]);
+    // Mantener los días seleccionados en la tabla ("Incluir en próximo horario") para que queden en ambos lugares
+    setNotification({ message: 'Horario añadido para los días seleccionados', type: 'success' });
+  };
+
+  const eliminarBloqueHorario = (id) => {
+    const bloque = bloquesHorario.find(b => b.id === id);
+    setBloquesHorario(prev => prev.filter(b => b.id !== id));
+    // Al eliminar, volver a seleccionar esos días en "Incluir en próximo horario" para poder reutilizarlos
+    if (bloque && bloque.dias && bloque.dias.length > 0) {
+      setDiasSeleccionadosParaHorario(prev => {
+        const sumados = new Set([...prev, ...bloque.dias]);
+        return [...sumados].sort((a, b) => a - b);
+      });
+    }
+  };
+
+  const actualizarBloqueHorario = (id, field, value) => {
+    setBloquesHorario(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
+  };
+
+  const handleGuardarHorarios = async () => {
+    if (!validarHoraDisplay(formPrimerHorario) || !validarHoraDisplay(formUltimoHorario)) {
+      setNotification({ message: 'Revisá el formato de los horarios (ej: 08 00, 16 30)', type: 'error' });
+      return;
+    }
+    const inicioApi = horaDisplayToApi(formPrimerHorario);
+    const finApi = horaDisplayToApi(formUltimoHorario);
+    if (finApi <= inicioApi) {
+      setNotification({ message: 'El último horario debe ser posterior al primero', type: 'error' });
+      return;
+    }
+    const intervalo = Math.max(5, Math.min(120, Number(formIntervalo) || 15));
+    setGuardandoHorarios(true);
+    try {
+      await negociosService.actualizarDiasDisponibles(establecimiento, diasQueAbre);
+      const bloquesParaApi = bloquesHorario.map(b => ({
+        id: b.id,
+        dias: b.dias,
+        inicio: horaDisplayToApi(b.inicio) || '09:00',
+        fin: horaDisplayToApi(b.fin) || '20:00',
+        intervalo: Math.max(5, Math.min(120, Number(b.intervalo) || 15))
+      }));
+      await negociosService.actualizarHorarios(establecimiento, {
+        inicio: inicioApi,
+        fin: finApi,
+        intervalo: intervalo,
+        bloquesHorario: bloquesParaApi
+      });
+      setHoraMinima(inicioApi);
+      setHoraLimite(finApi);
+      setHoraLimiteManual(true);
+      setNotification({ message: 'Horarios y días guardados correctamente', type: 'success' });
+    } catch (err) {
+      console.error('Error al guardar horarios:', err);
+      setNotification({ message: err?.message || 'Error al guardar horarios', type: 'error' });
+    } finally {
+      setGuardandoHorarios(false);
+    }
+  };
 
   // Función para formatear fecha como YYYY-MM-DD
   const formatearFecha = (fecha) => {
@@ -161,7 +327,33 @@ const Horarios = () => {
         if (negocio && negocio.horarios) {
           if (negocio.horarios.inicio) {
             setHoraMinima(negocio.horarios.inicio);
+            setFormPrimerHorario(horaApiToDisplay(negocio.horarios.inicio));
           }
+          if (negocio.horarios.fin) {
+            setHoraLimite(negocio.horarios.fin);
+            setFormUltimoHorario(horaApiToDisplay(negocio.horarios.fin));
+          }
+          if (negocio.horarios.intervalo != null && negocio.horarios.intervalo !== undefined) {
+            setFormIntervalo(Number(negocio.horarios.intervalo) || 15);
+          }
+        }
+        if (negocio && Array.isArray(negocio.diasDisponibles) && negocio.diasDisponibles.length > 0) {
+          setDiasQueAbre(negocio.diasDisponibles);
+        }
+        if (negocio && Array.isArray(negocio.bloquesHorario)) {
+          const mapeados = negocio.bloquesHorario.map((b, idx) => ({
+            id: b.id != null ? String(b.id) : `bloque-${idx}`,
+            dias: Array.isArray(b.dias) ? [...b.dias] : [],
+            inicio: horaApiToDisplay(b.inicio),
+            fin: horaApiToDisplay(b.fin),
+            intervalo: b.intervalo != null ? Number(b.intervalo) : 15
+          }));
+          setBloquesHorario(mapeados);
+          const maxNum = mapeados.reduce((acc, b) => {
+            const n = parseInt(b.id, 10);
+            return Number.isNaN(n) ? acc : Math.max(acc, n);
+          }, 0);
+          nextBloqueId.current = maxNum + 1;
         }
         // No cargar hora límite desde el backend, se calculará según el día
         setConfiguracionCargada(true);
@@ -1302,6 +1494,24 @@ const Horarios = () => {
     <div className="negocio-page">
       <div className="negocio-page-container">
         <h1>Gestión de Horarios</h1>
+
+        {/* Pestañas Horarios / Modificar */}
+        <div className="horarios-tabs">
+          <button
+            type="button"
+            className={`horarios-tab ${pestañaActiva === 'horarios' ? 'active' : ''}`}
+            onClick={() => setPestañaActiva('horarios')}
+          >
+            Horarios
+          </button>
+          <button
+            type="button"
+            className={`horarios-tab ${pestañaActiva === 'modificar' ? 'active' : ''}`}
+            onClick={() => setPestañaActiva('modificar')}
+          >
+            Modificar
+          </button>
+        </div>
         
         {error && (
           <div className="resenas-error">
@@ -1309,6 +1519,8 @@ const Horarios = () => {
           </div>
         )}
 
+        {pestañaActiva === 'modificar' && (
+          <>
         {/* Calendario */}
         <div className="calendario-container">
           <div className="calendario-header">
@@ -1467,31 +1679,40 @@ const Horarios = () => {
           if ((modoSeleccion === 'dias' || modoSeleccion === 'mes') && diasSeleccionados.length > 0) {
             todosSonCancelados = diasSeleccionados.every(dia => esDiaCancelado(dia));
           }
+
+          // El botón Cancelar/Restaurar día solo se habilita cuando hay un profesional o "General" seleccionado
+          const sinProfesionalSeleccionado = !profesionalSeleccionado && !esGeneral;
           
           return (
             <div className="horarios-lista-container" style={{ marginTop: '2rem', padding: '1.5rem', background: '#ffffff', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
               {/* Botón Cancelar/Restaurar día(s) */}
               <div style={{ marginBottom: diasCancelados.length > 0 ? '1.5rem' : '0' }}>
                 <button
-                  onClick={(modoSeleccion === 'dias' || modoSeleccion === 'mes') && diasSeleccionados.length > 0
+                  type="button"
+                  disabled={sinProfesionalSeleccionado}
+                  onClick={sinProfesionalSeleccionado ? undefined : ((modoSeleccion === 'dias' || modoSeleccion === 'mes') && diasSeleccionados.length > 0
                     ? (todosSonCancelados ? () => handleRestaurarMultiplesDias() : () => handleCancelarMultiplesDias())
-                    : (estaCanceladoActivo ? () => handleRestaurarDia(fechaActiva) : handleCancelarDia)}
+                    : (estaCanceladoActivo ? () => handleRestaurarDia(fechaActiva) : handleCancelarDia))}
                   style={{
-                    backgroundColor: (modoSeleccion === 'dias' || modoSeleccion === 'mes')
-                      ? (todosSonCancelados ? '#10b981' : '#ef4444')
-                      : (estaCanceladoActivo ? '#10b981' : '#ef4444'),
+                    backgroundColor: sinProfesionalSeleccionado
+                      ? '#9ca3af'
+                      : (modoSeleccion === 'dias' || modoSeleccion === 'mes')
+                        ? (todosSonCancelados ? '#10b981' : '#ef4444')
+                        : (estaCanceladoActivo ? '#10b981' : '#ef4444'),
                     color: 'white',
                     border: 'none',
                     padding: '0.75rem 1.5rem',
                     borderRadius: '8px',
                     fontSize: '1rem',
                     fontWeight: '600',
-                    cursor: 'pointer',
+                    cursor: sinProfesionalSeleccionado ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s ease',
                     width: '100%',
-                    maxWidth: '300px'
+                    maxWidth: '300px',
+                    opacity: sinProfesionalSeleccionado ? 0.8 : 1
                   }}
                   onMouseEnter={(e) => {
+                    if (sinProfesionalSeleccionado) return;
                     e.target.style.transform = 'scale(1.02)';
                     e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
                   }}
@@ -1499,6 +1720,7 @@ const Horarios = () => {
                     e.target.style.transform = 'scale(1)';
                     e.target.style.boxShadow = 'none';
                   }}
+                  title={sinProfesionalSeleccionado ? 'Seleccioná un profesional o "General" para habilitar' : undefined}
                 >
                   {(modoSeleccion === 'dias' || modoSeleccion === 'mes')
                     ? (todosSonCancelados 
@@ -1776,7 +1998,264 @@ const Horarios = () => {
           </div>
           );
         })()}
-      </div>
+          </>
+        )}
+
+        {pestañaActiva === 'horarios' && (
+          <div className="horarios-tab-content horarios-form-container">
+            <p className="horarios-form-descripcion">
+              Marcá qué días abre el local (los no marcados no aparecerán para reservar). Luego definí horarios y usá "Añadir horario" para configurar por día.
+            </p>
+
+            {/* Tabla de días: Abre el local + Incluir en próximo horario */}
+            <div className="horarios-tabla-dias-wrapper">
+              <h4 className="horarios-form-label">Días de la semana</h4>
+              <table className="horarios-tabla-dias">
+                <thead>
+                  <tr>
+                    <th>Día</th>
+                    <th>Abre el local</th>
+                    <th>Incluir en próximo horario</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[0, 1, 2, 3, 4, 5, 6].map(dia => (
+                    <tr key={dia}>
+                      <td>{NOMBRES_DIAS[dia]}</td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={diasQueAbre.includes(dia)}
+                          onChange={() => toggleDiaAbre(dia)}
+                          disabled={diasEnBloques.has(dia)}
+                          aria-label={`${NOMBRES_DIAS[dia]} abre el local`}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={diasSeleccionadosParaHorario.includes(dia)}
+                          onChange={() => toggleDiaSeleccionadoParaHorario(dia)}
+                          disabled={!diasQueAbre.includes(dia) || diasEnBloques.has(dia)}
+                          aria-label={`Incluir ${NOMBRES_DIAS[dia]} en próximo horario`}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="horarios-form-hint">Si "Abre el local" está desmarcado, ese día el local está cerrado y no se podrá reservar.</p>
+              <p className="horarios-form-hint">Los días que ya tienen un bloque de horario asignado no se pueden modificar ni volver a incluir en otro bloque.</p>
+            </div>
+
+            {/* Bloque principal: primer/último horario, intervalo + botón Añadir horario */}
+            <div className="horarios-form-campos horarios-bloque-principal">
+              <h4 className="horarios-form-label">Horario por defecto (o para el próximo bloque)</h4>
+              <div className="horarios-form-fila">
+              <div className="horarios-form-grupo">
+                <label className="horarios-form-label">Primer horario</label>
+                <input
+                  type="text"
+                  className="horarios-form-input"
+                  placeholder="08 00"
+                  value={formPrimerHorario}
+                  maxLength={5}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^\d\s]/g, '').replace(/\s{2,}/g, ' ');
+                    if (v.length <= 5) {
+                      const partes = v.split(' ');
+                      const a = partes[0] || '';
+                      const b = partes[1] || '';
+                      if (a.length <= 2 && b.length <= 2) setFormPrimerHorario(v.trim() ? v : '');
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (!v) return;
+                    const partes = v.split(/\s+/);
+                    if (partes.length >= 2) {
+                      const h = partes[0].padStart(2, '0').slice(0, 2);
+                      const m = partes[1].padStart(2, '0').slice(0, 2);
+                      setFormPrimerHorario(`${h} ${m}`);
+                    }
+                  }}
+                />
+                <span className="horarios-form-hint">Formato: xx xx (ej: 08 00, 16 30)</span>
+              </div>
+              <div className="horarios-form-grupo">
+                <label className="horarios-form-label">Último horario</label>
+                <input
+                  type="text"
+                  className="horarios-form-input"
+                  placeholder="17 00"
+                  value={formUltimoHorario}
+                  maxLength={5}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^\d\s]/g, '').replace(/\s{2,}/g, ' ');
+                    if (v.length <= 5) {
+                      const partes = v.split(' ');
+                      const a = partes[0] || '';
+                      const b = partes[1] || '';
+                      if (a.length <= 2 && b.length <= 2) setFormUltimoHorario(v.trim() ? v : '');
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (!v) return;
+                    const partes = v.split(/\s+/);
+                    if (partes.length >= 2) {
+                      const h = partes[0].padStart(2, '0').slice(0, 2);
+                      const m = partes[1].padStart(2, '0').slice(0, 2);
+                      setFormUltimoHorario(`${h} ${m}`);
+                    }
+                  }}
+                />
+                <span className="horarios-form-hint">Formato: xx xx (ej: 17 00, 20 30)</span>
+              </div>
+              <div className="horarios-form-grupo">
+                <label className="horarios-form-label">Intervalo (minutos)</label>
+                <input
+                  type="number"
+                  className="horarios-form-input horarios-form-input-num"
+                  min={5}
+                  max={120}
+                  step={5}
+                  value={formIntervalo}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    if (!Number.isNaN(n)) setFormIntervalo(Math.max(5, Math.min(120, n)));
+                  }}
+                />
+                <span className="horarios-form-hint">Cada cuántos minutos (ej: 15 → 08:00, 08:15…)</span>
+              </div>
+            </div>
+            <button
+                type="button"
+                className="horarios-form-btn-añadir"
+                onClick={handleAñadirHorario}
+              >
+                Añadir horario
+              </button>
+            </div>
+
+            {/* Bloques añadidos: días tachados + mismos campos */}
+            {bloquesHorario.length > 0 && (
+              <div className="horarios-bloques-list">
+                <h4 className="horarios-form-label">Horarios por día</h4>
+                {bloquesHorario.map(bloque => (
+                  <div key={bloque.id} className="horarios-bloque-card">
+                    <div className="horarios-bloque-dias-tachados">
+                      <span className="horarios-bloque-dias-label">Días: </span>
+                      {bloque.dias.map(d => (
+                        <span key={d} className="horarios-dia-tachado">{NOMBRES_DIAS[d]}</span>
+                      ))}
+                    </div>
+                    <div className="horarios-form-fila">
+                      <div className="horarios-form-grupo">
+                        <label className="horarios-form-label">Primer horario</label>
+                        <input
+                          type="text"
+                          className="horarios-form-input"
+                          placeholder="08 00"
+                          value={bloque.inicio}
+                          maxLength={5}
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/[^\d\s]/g, '').replace(/\s{2,}/g, ' ');
+                            if (v.length <= 5) {
+                              const partes = v.split(' ');
+                              if ((partes[0] || '').length <= 2 && (partes[1] || '').length <= 2) actualizarBloqueHorario(bloque.id, 'inicio', v);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const v = e.target.value.trim();
+                            if (!v) return;
+                            const partes = v.split(/\s+/);
+                            if (partes.length >= 2) {
+                              const h = partes[0].padStart(2, '0').slice(0, 2);
+                              const m = partes[1].padStart(2, '0').slice(0, 2);
+                              actualizarBloqueHorario(bloque.id, 'inicio', `${h} ${m}`);
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="horarios-form-grupo">
+                        <label className="horarios-form-label">Último horario</label>
+                        <input
+                          type="text"
+                          className="horarios-form-input"
+                          placeholder="17 00"
+                          value={bloque.fin}
+                          maxLength={5}
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/[^\d\s]/g, '').replace(/\s{2,}/g, ' ');
+                            if (v.length <= 5) {
+                              const partes = v.split(' ');
+                              if ((partes[0] || '').length <= 2 && (partes[1] || '').length <= 2) actualizarBloqueHorario(bloque.id, 'fin', v);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const v = e.target.value.trim();
+                            if (!v) return;
+                            const partes = v.split(/\s+/);
+                            if (partes.length >= 2) {
+                              const h = partes[0].padStart(2, '0').slice(0, 2);
+                              const m = partes[1].padStart(2, '0').slice(0, 2);
+                              actualizarBloqueHorario(bloque.id, 'fin', `${h} ${m}`);
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="horarios-form-grupo">
+                        <label className="horarios-form-label">Intervalo</label>
+                        <input
+                          type="number"
+                          className="horarios-form-input horarios-form-input-num"
+                          min={5}
+                          max={120}
+                          step={5}
+                          value={bloque.intervalo}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value, 10);
+                            if (!Number.isNaN(n)) actualizarBloqueHorario(bloque.id, 'intervalo', Math.max(5, Math.min(120, n)));
+                          }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="horarios-form-btn-eliminar-bloque"
+                        onClick={() => eliminarBloqueHorario(bloque.id)}
+                        title="Eliminar este horario"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="horarios-form-actions">
+              <button
+                type="button"
+                className="horarios-form-btn-guardar"
+                onClick={handleGuardarHorarios}
+                disabled={guardandoHorarios}
+              >
+                {guardandoHorarios ? 'Guardando…' : 'Guardar horarios'}
+              </button>
+            </div>
+            {generarHorariosPreview(formPrimerHorario, formUltimoHorario, formIntervalo).length > 0 && (
+              <div className="horarios-form-preview">
+                <h4 className="horarios-form-preview-titulo">Vista previa de horarios</h4>
+                <div className="horarios-form-preview-grid">
+                  {generarHorariosPreview(formPrimerHorario, formUltimoHorario, formIntervalo).map((hora, i) => (
+                    <span key={i} className="horarios-form-preview-slot">{hora}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       
       {notification && (
         <Notification
@@ -1785,6 +2264,7 @@ const Horarios = () => {
           onClose={() => setNotification(null)}
         />
       )}
+      </div>
     </div>
   );
 };

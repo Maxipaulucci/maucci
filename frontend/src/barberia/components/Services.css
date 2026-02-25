@@ -119,26 +119,30 @@
   color: var(--text-secondary);
 }
 
-.info-icon-wrapper {
+/* Solo en Servicios: íconos de reloj y dinero (no afectan Equipo) */
+.services .info-icon-wrapper {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 2rem;
+  height: 1rem;
+  flex-shrink: 0;
 }
 
-.info-icon {
-  width: 1.25rem;
-  height: 1.25rem;
+.services .info-icon-wrapper .info-icon,
+.services .service-duration .info-icon,
+.services .service-price .info-icon {
+  width: 2rem !important;
+  height: 2rem !important;
+  min-width: 2rem !important;
+  max-width: 2rem !important;
+  min-height: 2rem !important;
+  max-height: 2 rem !important;
   object-fit: contain;
   background-color: #ffffff !important;
   background: #ffffff !important;
-  padding: 3px;
+  padding: 2px;
   border-radius: 50%;
-}
-
-.service-duration .info-icon,
-.service-price .info-icon {
-  background-color: #ffffff !important;
-  background: #ffffff !important;
 }
 
 .service-description {

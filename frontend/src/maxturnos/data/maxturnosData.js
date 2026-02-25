@@ -3,8 +3,9 @@ export const maxturnosInfo = {
   name: "Maucci",
   tagline: "Sistemas de Turnos Profesionales",
   description: "Creamos sistemas de reservas web personalizados para barberías, manicurerías, estudios de piercing y cualquier negocio que necesite gestión de turnos. Transformamos tu negocio con tecnología moderna.",
-  email: "contacto@maucci.com",
+  email: "maucci81@gmail.com",
   phone: "+54 11 1234-5678",
+  instagram: "paulucci.dev",
   address: "Buenos Aires, Argentina",
   services: [
     {

@@ -26,6 +26,266 @@
   border-bottom: 2px solid var(--border-color);
 }
 
+/* Pestañas Horarios / Modificar */
+.horarios-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.horarios-tab {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.horarios-tab:hover {
+  color: var(--text-primary);
+}
+
+.horarios-tab.active {
+  color: var(--primary-color, #1e40af);
+  border-bottom-color: var(--primary-color, #1e40af);
+}
+
+.horarios-tab-content.horarios-tab-placeholder {
+  min-height: 200px;
+  padding: var(--spacing-xl);
+}
+
+/* Formulario de horarios (pestaña Horarios) */
+.horarios-form-container {
+  padding: var(--spacing-xl) 0;
+  max-width: 560px;
+}
+
+.horarios-form-descripcion {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xl);
+  line-height: 1.5;
+}
+
+.horarios-form-campos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+}
+
+.horarios-form-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.horarios-form-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.horarios-form-input {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  max-width: 140px;
+}
+
+.horarios-form-input:focus {
+  outline: none;
+  border-color: var(--primary-color, #1e40af);
+  box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.15);
+}
+
+.horarios-form-input-num {
+  max-width: 100px;
+}
+
+.horarios-form-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.horarios-form-actions {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.horarios-form-btn-guardar {
+  padding: 0.65rem 1.25rem;
+  background: var(--primary-color, #1e40af);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.horarios-form-btn-guardar:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.horarios-form-btn-guardar:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.horarios-form-preview {
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+.horarios-form-preview-titulo {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.horarios-form-preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.horarios-form-preview-slot {
+  display: inline-block;
+  padding: 0.35rem 0.65rem;
+  background: #eff6ff;
+  color: var(--primary-color, #1e40af);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Tabla de días */
+.horarios-tabla-dias-wrapper {
+  margin-bottom: var(--spacing-xl);
+}
+
+.horarios-tabla-dias {
+  width: 100%;
+  max-width: 420px;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.horarios-tabla-dias th,
+.horarios-tabla-dias td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border: 1px solid var(--border-color);
+}
+
+.horarios-tabla-dias th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.horarios-tabla-dias tbody tr:hover {
+  background: #f8fafc;
+}
+
+.horarios-tabla-dias input[type="checkbox"] {
+  cursor: pointer;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--primary-color, #1e40af);
+}
+
+.horarios-bloque-principal {
+  margin-bottom: var(--spacing-xl);
+}
+
+.horarios-form-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.horarios-form-btn-añadir {
+  padding: 0.6rem 1.25rem;
+  background: transparent;
+  color: var(--primary-color, #1e40af);
+  border: 2px solid var(--primary-color, #1e40af);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.horarios-form-btn-añadir:hover {
+  background: var(--primary-color, #1e40af);
+  color: white;
+}
+
+.horarios-bloques-list {
+  margin-bottom: var(--spacing-xl);
+}
+
+.horarios-bloque-card {
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.horarios-bloque-dias-tachados {
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.horarios-bloque-dias-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.horarios-dia-tachado {
+  font-size: 0.9rem;
+  padding: 0.2rem 0.5rem;
+  background: #e2e8f0;
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.horarios-form-btn-eliminar-bloque {
+  padding: 0.5rem 1rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  align-self: flex-end;
+  margin-top: 1.5rem;
+}
+
+.horarios-form-btn-eliminar-bloque:hover {
+  background: #fecaca;
+}
+
 .resenas-error {
   background-color: #fee2e2;
   color: #dc2626;

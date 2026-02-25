@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { FaCalendarAlt, FaCheck } from 'react-icons/fa';
 import { timeSlots } from '../data/sampleData';
 import { reservasService, negociosService, personalService, servicioService, diasCanceladosService } from '../../services/api';
+import { barberiaCache } from '../data/barberiaCache';
 import { useAuth } from '../../context/AuthContext';
 import './Booking.css';
 
@@ -80,109 +81,84 @@ const Booking = () => {
     }));
   };
 
-  // Cargar personal desde el backend
+  // Cargar personal y servicios en paralelo; usar caché de barbería si existe para mostrar al instante
   useEffect(() => {
-    const cargarPersonal = async () => {
-      try {
-        const response = await personalService.obtenerPersonal(establecimiento);
-        const personalData = response.data || response;
-        const personalConvertido = convertirPersonalABackend(personalData);
-        setTeam(personalConvertido);
-      } catch (err) {
-        console.error('Error al cargar personal:', err);
-        // En caso de error, mantener lista vacía
-        setTeam([]);
-      }
-    };
-    
-    cargarPersonal();
-  }, [establecimiento]);
-
-  // Cargar servicios desde el backend
-  useEffect(() => {
-    const cargarServicios = async () => {
-      try {
-        const response = await servicioService.obtenerServicios(establecimiento);
-        const serviciosData = response.data || response;
-        const serviciosConvertidos = convertirServicioABackend(serviciosData);
-        setServices(serviciosConvertidos);
-        
-        // Si hay un servicio en la URL, seleccionarlo automáticamente
-        const searchParams = new URLSearchParams(location.search);
-        const serviceIdFromUrl = searchParams.get('service');
-        if (serviceIdFromUrl && serviciosConvertidos.length > 0) {
-          const servicioEncontrado = serviciosConvertidos.find(
-            s => s.id.toString() === serviceIdFromUrl
-          );
-          if (servicioEncontrado) {
-            setSelectedService(servicioEncontrado);
-            setStep(2);
-          }
+    const applyServicioFromUrl = (serviciosConvertidos) => {
+      const searchParams = new URLSearchParams(location.search);
+      const serviceIdFromUrl = searchParams.get('service');
+      if (serviceIdFromUrl && serviciosConvertidos.length > 0) {
+        const servicioEncontrado = serviciosConvertidos.find(
+          s => s.id.toString() === serviceIdFromUrl
+        );
+        if (servicioEncontrado) {
+          setSelectedService(servicioEncontrado);
+          setStep(2);
         }
-      } catch (err) {
-        console.error('Error al cargar servicios:', err);
-        // En caso de error, mantener lista vacía
-        setServices([]);
       }
     };
-    
-    cargarServicios();
+
+    const cachedPersonal = barberiaCache.getPersonal(establecimiento);
+    const cachedServicios = barberiaCache.getServicios(establecimiento);
+    if (cachedPersonal && Array.isArray(cachedPersonal)) {
+      setTeam(convertirPersonalABackend(cachedPersonal));
+    }
+    if (cachedServicios && Array.isArray(cachedServicios)) {
+      const serviciosConvertidos = convertirServicioABackend(cachedServicios);
+      setServices(serviciosConvertidos);
+      applyServicioFromUrl(serviciosConvertidos);
+    }
+
+    const cargarTodo = async () => {
+      try {
+        const [personalRes, serviciosRes] = await Promise.all([
+          personalService.obtenerPersonal(establecimiento),
+          servicioService.obtenerServicios(establecimiento)
+        ]);
+        const personalData = personalRes?.data ?? personalRes;
+        const serviciosData = serviciosRes?.data ?? serviciosRes;
+        const personalConvertido = convertirPersonalABackend(Array.isArray(personalData) ? personalData : []);
+        const serviciosConvertidos = convertirServicioABackend(Array.isArray(serviciosData) ? serviciosData : []);
+        setTeam(personalConvertido);
+        setServices(serviciosConvertidos);
+        if (Array.isArray(personalData)) barberiaCache.setPersonal(establecimiento, personalData);
+        if (Array.isArray(serviciosData)) barberiaCache.setServicios(establecimiento, serviciosData);
+        applyServicioFromUrl(serviciosConvertidos);
+      } catch (err) {
+        console.error('Error al cargar personal/servicios:', err);
+        if (!cachedPersonal) setTeam([]);
+        if (!cachedServicios) setServices([]);
+      }
+    };
+    cargarTodo();
   }, [establecimiento, location.search]);
 
-  // Cargar configuración del establecimiento
+  // Cargar configuración del establecimiento (una sola llamada a negocio + días cancelados en paralelo)
   useEffect(() => {
     const fetchEstablecimientoConfig = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/establecimientos/${establecimiento}`);
-        if (response.ok) {
-          const data = await response.json();
-          setEstablecimientoConfig(data.establecimiento);
-          if (data.establecimiento?.diasDisponibles) {
-            let dias = data.establecimiento.diasDisponibles;
-            // Asegurar que el lunes (1) esté incluido si no lo está
-            if (!dias.includes(1)) {
-              dias = [...dias, 1].sort((a, b) => a - b);
-            }
-            setDiasDisponibles(dias);
-          }
-        }
-        
-        // Cargar configuración del negocio para obtener hora de cierre y días disponibles
-        const negocioResponse = await negociosService.obtenerNegocio(establecimiento);
-        const negocio = negocioResponse.data || negocioResponse;
-        if (negocio) {
-          // Si el negocio tiene días disponibles, usarlos (asegurando que el lunes esté incluido)
-          if (negocio.diasDisponibles) {
-            let dias = negocio.diasDisponibles;
-            // Asegurar que el lunes (1) esté incluido si no lo está
-            if (!dias.includes(1)) {
-              dias = [...dias, 1].sort((a, b) => a - b);
-            }
-            setDiasDisponibles(dias);
-          }
-          if (negocio.horarios && negocio.horarios.fin) {
-            setHoraCierre(negocio.horarios.fin);
-          }
-        }
-        
-        // Cargar días cancelados
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
         const fechaDesde = hoy.toISOString().split('T')[0];
-        try {
-          const diasCanceladosResponse = await diasCanceladosService.obtenerDiasCancelados(establecimiento, fechaDesde);
-          const diasCanceladosData = diasCanceladosResponse.data || diasCanceladosResponse || [];
-          setDiasCancelados(diasCanceladosData);
-        } catch (err) {
-          console.error('Error al cargar días cancelados:', err);
-          setDiasCancelados([]);
+        const [negocioResponse, diasCanceladosResponse] = await Promise.all([
+          negociosService.obtenerNegocio(establecimiento),
+          diasCanceladosService.obtenerDiasCancelados(establecimiento, fechaDesde).catch(() => ({ data: [] }))
+        ]);
+        const negocio = negocioResponse?.data ?? negocioResponse;
+        const diasCanceladosData = diasCanceladosResponse?.data ?? diasCanceladosResponse ?? [];
+        setEstablecimientoConfig(negocio || null);
+        setDiasCancelados(Array.isArray(diasCanceladosData) ? diasCanceladosData : []);
+        if (negocio) {
+          if (negocio.diasDisponibles) {
+            let dias = [...negocio.diasDisponibles];
+            if (!dias.includes(1)) dias.push(1);
+            setDiasDisponibles(dias.sort((a, b) => a - b));
+          }
+          if (negocio.horarios?.fin) setHoraCierre(negocio.horarios.fin);
         }
       } catch (err) {
         console.error('Error al cargar configuración del establecimiento:', err);
-        // Usar valores por defecto si falla
       }
     };
-    
     fetchEstablecimientoConfig();
   }, [establecimiento]);
 
@@ -274,31 +250,22 @@ const Booking = () => {
     setAvailableTimeSlots(timeSlots);
   };
 
-  // Cargar horarios cuando se vuelve al paso 4 (Hora) y ya hay profesional seleccionado
+  // Cargar horarios cuando estamos en paso 4 (Hora) y ya hay profesional seleccionado
   useEffect(() => {
     const fetchAvailableTimes = async () => {
       if (step === 4 && selectedDate && selectedBarber && selectedService) {
         setIsLoadingTimes(true);
         setError('');
         try {
-          console.log('Solicitando horarios disponibles:', {
-            establecimiento,
-            selectedDate,
-            profesionalId: selectedBarber.id,
-            servicio: selectedService
-          });
           const response = await reservasService.obtenerHorariosDisponibles(
             establecimiento,
             selectedDate,
             selectedBarber.id,
             selectedService
           );
-          console.log('Respuesta completa de horarios disponibles:', response);
           const horarios = response.data?.horariosDisponibles || response.horariosDisponibles || [];
-          console.log('Horarios disponibles extraídos:', horarios);
           setAvailableTimeSlots(horarios);
         } catch (err) {
-          console.error('Error al obtener horarios disponibles:', err);
           setError('Error al cargar horarios disponibles');
           setAvailableTimeSlots(timeSlots);
         } finally {
@@ -310,38 +277,10 @@ const Booking = () => {
     fetchAvailableTimes();
   }, [step, selectedDate, selectedBarber, selectedService, establecimiento]);
 
-  const handleBarberSelect = async (barber) => {
+  const handleBarberSelect = (barber) => {
     setSelectedBarber(barber);
-    // Cargar horarios disponibles cuando se selecciona el profesional
-    if (selectedDate && selectedService) {
-      setIsLoadingTimes(true);
-      setError('');
-      try {
-        console.log('Solicitando horarios disponibles:', {
-          establecimiento,
-          selectedDate,
-          profesionalId: barber.id,
-          servicio: selectedService
-        });
-        const response = await reservasService.obtenerHorariosDisponibles(
-          establecimiento,
-          selectedDate,
-          barber.id,
-          selectedService
-        );
-        console.log('Respuesta completa de horarios disponibles:', response);
-        const horarios = response.data?.horariosDisponibles || response.horariosDisponibles || [];
-        console.log('Horarios disponibles extraídos:', horarios);
-        setAvailableTimeSlots(horarios);
-      } catch (err) {
-        console.error('Error al obtener horarios disponibles:', err);
-        setError('Error al cargar horarios disponibles');
-        setAvailableTimeSlots(timeSlots);
-      } finally {
-        setIsLoadingTimes(false);
-      }
-    }
-    setStep(4); // Cambiar a paso 4 (Hora)
+    setIsLoadingTimes(!!(selectedDate && selectedService));
+    setStep(4);
   };
 
   const handleTimeSelect = (time) => {

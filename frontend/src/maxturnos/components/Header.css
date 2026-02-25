@@ -82,7 +82,7 @@
   -ms-user-select: none;
 }
 
-/* Íconos de contacto en la barra superior: teléfono y sobre */
+/* Íconos de contacto en la barra superior: Instagram y email con fondo propio */
 .header-contact-item {
   display: inline-flex;
   align-items: center;
@@ -90,10 +90,15 @@
   text-decoration: none;
   color: #1e40af;
   font-size: 0.875rem;
-  transition: opacity 0.2s ease;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 3px rgba(30, 64, 175, 0.15);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 .header-contact-item:hover {
-  opacity: 0.85;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 6px rgba(30, 64, 175, 0.2);
 }
 .header-top .header-contact-icon {
   display: flex;

@@ -312,24 +312,57 @@
   background-color: var(--primary-color);
 }
 
+/* Cartel CTA igual que Acerca de (primera foto): fondo celeste, título en caja #A7D7FA con sombra, misma tipografía */
 .reviews-cta {
-  text-align: center;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  background-color: #e0f2fe;
   border-radius: var(--radius-xl);
   padding: var(--spacing-2xl);
-  color: white;
+  text-align: center;
+  color: #1e40af;
+  margin-top: var(--spacing-2xl);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
-.reviews-cta h3 {
-  font-size: 1.875rem;
+.reviews-cta-content h2 {
+  display: inline-block;
+  font-size: 2.5rem;
+  font-weight: 600;
   margin-bottom: var(--spacing-md);
   color: white;
+  background-color: #A7D7FA;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.reviews-cta p {
+.reviews-cta-content p {
   font-size: 1.125rem;
-  margin-bottom: var(--spacing-md);
-  opacity: 0.9;
+  font-weight: 400;
+  margin-bottom: var(--spacing-xl);
+  color: #1e40af;
+}
+
+.reviews-cta-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.reviews-cta-actions .btn {
+  min-width: 150px;
+}
+
+.reviews-cta-actions .btn-primary {
+  background-color: white;
+  color: #1e40af;
+  border: 1px solid #1e40af;
+  font-weight: 700;
+}
+
+.reviews-cta-actions .btn-primary:hover {
+  background-color: #1e40af;
+  color: white;
 }
 
 .reviews-auth-error {
@@ -452,8 +485,18 @@
     padding: var(--spacing-xl);
   }
   
-  .reviews-cta h3 {
-    font-size: 1.5rem;
+  .reviews-cta-content h2 {
+    font-size: 2rem;
+  }
+  
+  .reviews-cta-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .reviews-cta-actions .btn {
+    width: 100%;
+    max-width: 280px;
   }
 }
 
@@ -483,11 +526,11 @@
     padding: var(--spacing-lg);
   }
   
-  .reviews-cta h3 {
-    font-size: 1.25rem;
+  .reviews-cta-content h2 {
+    font-size: 1.5rem;
   }
   
-  .reviews-cta p {
+  .reviews-cta-content p {
     font-size: 1rem;
   }
 }

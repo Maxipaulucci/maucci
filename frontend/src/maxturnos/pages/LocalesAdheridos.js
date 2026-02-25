@@ -94,15 +94,15 @@ const LocalesAdheridos = () => {
                 
                 <div className="local-info">
                   <div className="info-item">
-                    <img src="/assets/img/logos_genericos/ubicacion.png" alt="" className="info-icon" aria-hidden="true" />
+                    <img src="/assets/img/logos_genericos/ubicacion.png" alt="" className="info-icon local-card-icon" aria-hidden="true" />
                     <span>{local.address}</span>
                   </div>
                   <div className="info-item">
-                    <img src="/assets/img/logos_genericos/telefono.png" alt="" className="info-icon" aria-hidden="true" />
+                    <img src="/assets/img/logos_genericos/telefono.png" alt="" className="info-icon local-card-icon" aria-hidden="true" />
                     <span>{local.phone}</span>
                   </div>
                   <div className="info-item">
-                    <img src="/assets/img/logos_genericos/reloj.png" alt="" className="info-icon" aria-hidden="true" />
+                    <img src="/assets/img/logos_genericos/reloj.png" alt="" className="info-icon local-card-icon" aria-hidden="true" />
                     <span>{local.hours}</span>
                   </div>
                 </div>

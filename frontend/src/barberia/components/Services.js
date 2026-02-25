@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaArrowRight } from 'react-icons/fa';
 import { servicioService } from '../../services/api';
+import { barberiaCache } from '../data/barberiaCache';
 import './Services.css';
 
 const Services = () => {
@@ -32,23 +33,32 @@ const Services = () => {
     }));
   };
 
-  // Cargar servicios desde el backend
+  // Cargar servicios: mostrar caché al instante si existe, luego actualizar en segundo plano
   useEffect(() => {
+    const cachedRaw = barberiaCache.getServicios(establecimiento);
+    const cached = cachedRaw && Array.isArray(cachedRaw) ? convertirServicioABackend(cachedRaw) : [];
+    if (cached.length > 0) {
+      setServices(cached);
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
+
     const cargarServicios = async () => {
       try {
-        setIsLoading(true);
         const response = await servicioService.obtenerServicios(establecimiento);
         const serviciosData = response.data || response;
+        barberiaCache.setServicios(establecimiento, serviciosData);
         const serviciosConvertidos = convertirServicioABackend(serviciosData);
         setServices(serviciosConvertidos);
       } catch (err) {
         console.error('Error al cargar servicios:', err);
-        setServices([]);
+        if (cached.length === 0) setServices([]);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     cargarServicios();
   }, [establecimiento]);
 

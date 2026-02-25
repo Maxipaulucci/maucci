@@ -4,7 +4,10 @@ import { FaStar, FaClock, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { businessInfo } from '../data/sampleData';
 import { resenasService } from '../../services/api';
 import { negociosService } from '../../services/api';
+import { barberiaCache } from '../data/barberiaCache';
 import './Hero.css';
+
+const NEGOCIO_CODIGO = 'barberia_clasica';
 
 const Hero = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -31,16 +34,50 @@ const Hero = () => {
     setCurrentImageIndex(index);
   };
 
-  // Cargar reseñas reales y configuración del negocio (por separado para que un fallo no borre la puntuación)
+  // Aplicar datos de negocio al estado (hora cierre, días, abierto/cerrado)
+  const aplicarNegocio = (negocio) => {
+    if (!negocio) return;
+    const finHorario = negocio.horarios?.fin || '20:00';
+    setHoraCierre(finHorario);
+    setDiasDisponibles(negocio.diasDisponibles && Array.isArray(negocio.diasDisponibles) ? negocio.diasDisponibles : null);
+    const ahora = new Date();
+    const horaActual = ahora.getHours();
+    const minutosActuales = ahora.getMinutes();
+    const horaActualMinutos = horaActual * 60 + minutosActuales;
+    const [horasCierre, minutosCierre] = finHorario.split(':').map(Number);
+    const horaCierreMinutos = (horasCierre || 20) * 60 + (minutosCierre || 0);
+    let cerrado = horaActualMinutos >= horaCierreMinutos;
+    if (negocio.diasDisponibles?.length > 0) {
+      const diaHoy = ahora.getDay();
+      if (!negocio.diasDisponibles.includes(diaHoy)) cerrado = true;
+    }
+    setEstaCerrado(cerrado);
+  };
+
+  // Cargar reseñas y negocio: mostrar caché al instante si existe (calificación y abierto/cerrado), luego refrescar en segundo plano
   useEffect(() => {
-    const negocioCodigo = 'barberia_clasica';
+    const cachedResenas = barberiaCache.getResenas(NEGOCIO_CODIGO);
+    const cachedNegocio = barberiaCache.getNegocio(NEGOCIO_CODIGO);
+    const fromCache = (cachedResenas && Array.isArray(cachedResenas)) || cachedNegocio;
+
+    if (cachedResenas && cachedResenas.length > 0) {
+      const promedio = cachedResenas.reduce((sum, r) => sum + r.rating, 0) / cachedResenas.length;
+      setAverageRating(promedio);
+      setTotalReviews(cachedResenas.length);
+    } else if (cachedResenas && cachedResenas.length === 0) {
+      setAverageRating(0);
+      setTotalReviews(0);
+    }
+    if (cachedNegocio) aplicarNegocio(cachedNegocio);
+    if (fromCache) setIsLoading(false);
 
     const cargarResenas = async () => {
       try {
-        const resenasResponse = await resenasService.obtenerResenasPublicas(negocioCodigo);
-        const resenasData = resenasResponse.data || [];
+        const resenasResponse = await resenasService.obtenerResenasPublicas(NEGOCIO_CODIGO);
+        const resenasData = resenasResponse?.data ?? resenasResponse ?? [];
+        if (Array.isArray(resenasData)) barberiaCache.setResenas(NEGOCIO_CODIGO, resenasData);
         if (resenasData.length > 0) {
-          const promedio = resenasData.reduce((sum, resena) => sum + resena.rating, 0) / resenasData.length;
+          const promedio = resenasData.reduce((sum, r) => sum + r.rating, 0) / resenasData.length;
           setAverageRating(promedio);
           setTotalReviews(resenasData.length);
         } else {
@@ -56,38 +93,17 @@ const Hero = () => {
 
     const cargarNegocio = async () => {
       try {
-        const negocioResponse = await negociosService.obtenerNegocio(negocioCodigo);
-        const negocio = negocioResponse.data || negocioResponse;
-        if (!negocio) return;
-        // Hora de cierre: usar la del negocio o por defecto 20:00
-        const finHorario = negocio.horarios?.fin || '20:00';
-        setHoraCierre(finHorario);
-        const ahora = new Date();
-        const horaActual = ahora.getHours();
-        const minutosActuales = ahora.getMinutes();
-        const horaActualMinutos = horaActual * 60 + minutosActuales;
-        const [horasCierre, minutosCierre] = finHorario.split(':').map(Number);
-        const horaCierreMinutos = (horasCierre || 20) * 60 + (minutosCierre || 0);
-        setDiasDisponibles(negocio.diasDisponibles && Array.isArray(negocio.diasDisponibles) ? negocio.diasDisponibles : null);
-        // Cerrado si: (1) hoy no es día laboral, o (2) ya pasó la hora de cierre
-        let cerrado = horaActualMinutos >= horaCierreMinutos;
-        if (negocio.diasDisponibles && Array.isArray(negocio.diasDisponibles) && negocio.diasDisponibles.length > 0) {
-          const diaHoy = ahora.getDay(); // 0 = domingo, 1 = lunes, ... 6 = sábado
-          if (!negocio.diasDisponibles.includes(diaHoy)) cerrado = true;
-        }
-        setEstaCerrado(cerrado);
+        const negocioResponse = await negociosService.obtenerNegocio(NEGOCIO_CODIGO);
+        const negocio = negocioResponse?.data ?? negocioResponse;
+        if (negocio?.codigo) barberiaCache.setNegocio(NEGOCIO_CODIGO, negocio);
+        aplicarNegocio(negocio);
       } catch (err) {
         console.error('Error al cargar configuración del negocio (Hero):', err);
       }
     };
 
-    const cargarDatos = async () => {
-      setIsLoading(true);
-      await Promise.all([cargarResenas(), cargarNegocio()]);
-      setIsLoading(false);
-    };
-
-    cargarDatos();
+    if (!fromCache) setIsLoading(true);
+    Promise.all([cargarResenas(), cargarNegocio()]).finally(() => setIsLoading(false));
   }, []);
 
   // Verificar cada minuto si está cerrado (hora y día laboral)
@@ -132,25 +148,26 @@ const Hero = () => {
               
               <div className="rating-section">
                 {!isLoading && (
-                <div className="rating">
-                  <div className="stars">
-                    {renderStars(averageRating)}
-                  </div>
-                  <span className="rating-text">
-                    {averageRating.toFixed(1)} ({totalReviews} {totalReviews === 1 ? 'voto' : 'votos'})
-                  </span>
-                </div>
+                  <>
+                    <div className="rating">
+                      <div className="stars">
+                        {renderStars(averageRating)}
+                      </div>
+                      <span className="rating-text">
+                        {averageRating.toFixed(1)} ({totalReviews} {totalReviews === 1 ? 'voto' : 'votos'})
+                      </span>
+                    </div>
+                    <div className={`status ${estaCerrado ? 'cerrado' : ''}`}>
+                      <FaClock className="status-icon" />
+                      <span key={horaCierre}>
+                        {estaCerrado 
+                          ? 'Cerrado por hoy' 
+                          : `Abierto hasta las ${horaCierre}`
+                        }
+                      </span>
+                    </div>
+                  </>
                 )}
-                
-                <div className={`status ${estaCerrado ? 'cerrado' : ''}`}>
-                  <FaClock className="status-icon" />
-                  <span key={horaCierre}>
-                    {estaCerrado 
-                      ? 'Cerrado por hoy' 
-                      : `Abierto hasta las ${horaCierre}`
-                    }
-                  </span>
-                </div>
               </div>
               
               <div className="location">

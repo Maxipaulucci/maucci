@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaBars, FaTimes, FaPhone, FaEnvelope } from 'react-icons/fa';
+import { FaBars, FaTimes, FaEnvelope, FaInstagram } from 'react-icons/fa';
 import { maxturnosInfo } from '../data/maxturnosData';
 import { scrollToTop } from '../../hooks/useScrollToTop';
 import { useAuth } from '../../context/AuthContext';
@@ -37,9 +37,8 @@ const MaxturnosHeader = () => {
         <div className="container">
           <div className="header-info">
             <div className="header-contact-group">
-              <a href={`tel:${maxturnosInfo.phone}`} className="header-contact-item">
-                <FaPhone className="header-contact-icon" aria-hidden="true" />
-                <span>{maxturnosInfo.phone}</span>
+              <a href={`https://instagram.com/${maxturnosInfo.instagram}`} target="_blank" rel="noopener noreferrer" className="header-contact-item" aria-label="Instagram">
+                <FaInstagram className="header-contact-icon" aria-hidden="true" />
               </a>
               <a href={`mailto:${maxturnosInfo.email}`} className="header-contact-item">
                 <FaEnvelope className="header-contact-icon" aria-hidden="true" />

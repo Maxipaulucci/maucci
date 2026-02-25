@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaFacebook, FaInstagram, FaTwitter } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaEnvelope, FaInstagram } from 'react-icons/fa';
 import { maxturnosInfo } from '../data/maxturnosData';
 import { useContactModal } from '../context/ContactModalContext';
+import LegalModal from './LegalModal';
 import './Footer.css';
 
 const MaxturnosFooter = () => {
   const currentYear = new Date().getFullYear();
   const { openContactModal } = useContactModal();
+  const [legalModalType, setLegalModalType] = useState(null);
 
   return (
     <footer className="maxturnos-footer">
@@ -19,17 +21,6 @@ const MaxturnosFooter = () => {
             <p className="footer-description">
               {maxturnosInfo.description}
             </p>
-            <div className="social-links">
-              <a href="#" className="social-link" aria-label="Facebook">
-                <FaFacebook />
-              </a>
-              <a href="#" className="social-link" aria-label="Instagram">
-                <FaInstagram />
-              </a>
-              <a href="#" className="social-link" aria-label="Twitter">
-                <FaTwitter />
-              </a>
-            </div>
           </div>
 
           {/* Enlaces rápidos */}
@@ -81,8 +72,10 @@ const MaxturnosFooter = () => {
                 <span>{maxturnosInfo.address}</span>
               </div>
               <div className="contact-item">
-                <FaPhone className="contact-icon" />
-                <a href={`tel:${maxturnosInfo.phone}`}>{maxturnosInfo.phone}</a>
+                <a href={`https://instagram.com/${maxturnosInfo.instagram}`} target="_blank" rel="noopener noreferrer" className="footer-instagram-link">
+                  <FaInstagram className="contact-icon" aria-hidden="true" />
+                  <span>Instagram</span>
+                </a>
               </div>
               <div className="contact-item">
                 <FaEnvelope className="contact-icon" />
@@ -102,19 +95,34 @@ const MaxturnosFooter = () => {
               © {currentYear} {maxturnosInfo.name}. Todos los derechos reservados.
             </p>
             <div className="footer-bottom-links">
-              <Link to="/privacidad" className="footer-bottom-link">
+              <button
+                type="button"
+                className="footer-bottom-link footer-bottom-link-button"
+                onClick={() => setLegalModalType('privacidad')}
+              >
                 Política de Privacidad
-              </Link>
-              <Link to="/terminos" className="footer-bottom-link">
+              </button>
+              <button
+                type="button"
+                className="footer-bottom-link footer-bottom-link-button"
+                onClick={() => setLegalModalType('terminos')}
+              >
                 Términos de Servicio
-              </Link>
-              <Link to="/cookies" className="footer-bottom-link">
+              </button>
+              <button
+                type="button"
+                className="footer-bottom-link footer-bottom-link-button"
+                onClick={() => setLegalModalType('cookies')}
+              >
                 Política de Cookies
-              </Link>
+              </button>
             </div>
           </div>
         </div>
       </div>
+      {legalModalType && (
+        <LegalModal type={legalModalType} onClose={() => setLegalModalType(null)} />
+      )}
     </footer>
   );
 };
