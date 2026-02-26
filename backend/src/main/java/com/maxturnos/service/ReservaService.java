@@ -280,16 +280,22 @@ public class ReservaService {
             })
             .collect(Collectors.toList());
         
-        // Calcular horarios bloqueados para el reporte (reservas + bloqueados manualmente)
-        Set<String> horariosBloqueadosSet = new HashSet<>();
+        // Horarios reservados: slots que tienen una reserva (solo para mostrar "Reservado")
+        Set<String> horariosReservadosSet = new HashSet<>();
         for (Reserva reserva : reservas) {
-            horariosBloqueadosSet.add(reserva.getHora());
+            horariosReservadosSet.addAll(calcularHorariosBloqueados(
+                reserva.getHora(), reserva.getDuracionMinutos(), intervalo));
         }
-        // Agregar también los horarios bloqueados manualmente
+        // Horarios bloqueados manualmente por el negocio (mostrar como "Bloqueado" con opción restaurar)
+        List<String> horariosBloqueadosManualmente = new ArrayList<>(horasBloqueadas);
+        // Mantener horariosBloqueados como unión para compatibilidad
+        Set<String> horariosBloqueadosSet = new HashSet<>(horariosReservadosSet);
         horariosBloqueadosSet.addAll(horasBloqueadas);
         Map<String, Object> resultado = new HashMap<>();
         resultado.put("horariosDisponibles", horariosDisponibles);
         resultado.put("horariosBloqueados", new ArrayList<>(horariosBloqueadosSet));
+        resultado.put("horariosReservados", new ArrayList<>(horariosReservadosSet));
+        resultado.put("horariosBloqueadosManualmente", horariosBloqueadosManualmente);
         
         return resultado;
     }
