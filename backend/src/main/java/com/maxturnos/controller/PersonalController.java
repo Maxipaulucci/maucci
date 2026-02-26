@@ -5,6 +5,7 @@ import com.maxturnos.model.Personal;
 import com.maxturnos.model.Reserva;
 import com.maxturnos.model.NegocioData;
 import com.maxturnos.util.ModelConverter;
+import com.maxturnos.util.TextUtils;
 import com.maxturnos.service.NegocioDataService;
 import com.maxturnos.service.EmailService;
 import org.springframework.http.HttpStatus;
@@ -126,11 +127,11 @@ public class PersonalController {
 
             NegocioData.PersonalData nuevoPersonalData = new NegocioData.PersonalData();
             nuevoPersonalData.setIdPersonal(siguienteId);
-            nuevoPersonalData.setNombre(personalData.getNombre());
-            nuevoPersonalData.setRol(personalData.getRol());
+            nuevoPersonalData.setNombre(TextUtils.capitalizeWords(personalData.getNombre()));
+            nuevoPersonalData.setRol(TextUtils.capitalizeFirst(personalData.getRol()));
             nuevoPersonalData.setAvatar(personalData.getAvatar());
-            nuevoPersonalData.setSpecialties(personalData.getSpecialties());
-            nuevoPersonalData.setTituloCertificado(personalData.getTituloCertificado());
+            nuevoPersonalData.setSpecialties(TextUtils.capitalizeEach(personalData.getSpecialties()));
+            nuevoPersonalData.setTituloCertificado(personalData.getTituloCertificado() != null ? TextUtils.capitalizeFirst(personalData.getTituloCertificado()) : null);
             nuevoPersonalData.setActivo(true);
 
             negocioDataService.addPersonal(establecimiento, nuevoPersonalData);
@@ -170,16 +171,20 @@ public class PersonalController {
             }
 
             NegocioData.PersonalData personal = personalOpt.get();
-            personal.setNombre(personalData.getNombre());
-            personal.setRol(personalData.getRol());
+            String nombreNorm = TextUtils.capitalizeWords(personalData.getNombre());
+            String rolNorm = TextUtils.capitalizeFirst(personalData.getRol());
+            List<String> specialtiesNorm = TextUtils.capitalizeEach(personalData.getSpecialties());
+            String certNorm = personalData.getTituloCertificado() != null ? TextUtils.capitalizeFirst(personalData.getTituloCertificado()) : null;
+            personal.setNombre(nombreNorm);
+            personal.setRol(rolNorm);
             personal.setAvatar(personalData.getAvatar());
-            personal.setSpecialties(personalData.getSpecialties());
-            personal.setTituloCertificado(personalData.getTituloCertificado());
+            personal.setSpecialties(specialtiesNorm);
+            personal.setTituloCertificado(certNorm);
 
             // Persistir todos los campos en una sola escritura (incluye tituloCertificado)
             negocioDataService.updatePersonalCompleto(establecimiento, idPersonal,
-                    personal.getNombre(), personal.getRol(), personal.getAvatar(),
-                    personal.getSpecialties(), personal.getTituloCertificado());
+                    nombreNorm, rolNorm, personal.getAvatar(),
+                    specialtiesNorm, certNorm);
 
             Personal personalActualizado = ModelConverter.personalDataToPersonal(personal, establecimiento);
 

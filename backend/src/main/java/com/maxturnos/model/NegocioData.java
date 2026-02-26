@@ -59,6 +59,9 @@ public class NegocioData {
     // ========== DÍAS DISPONIBLES (0=Domingo ... 6=Sábado) ==========
     private List<Integer> diasDisponibles;
     
+    /** Orden de reseñas: "antigua-reciente", "reciente-antigua", "mayor-menor", "menor-mayor" */
+    private String ordenResenas;
+    
     // ========== INNER CLASSES ==========
     
     @Data

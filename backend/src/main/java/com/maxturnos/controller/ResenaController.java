@@ -127,14 +127,11 @@ public class ResenaController {
                     .map(r -> ModelConverter.resenaDataToResena(r, codigo.toLowerCase()))
                     .collect(java.util.stream.Collectors.toList());
 
-            // Obtener el negocio para ver el ordenamiento preferido
-            Optional<com.maxturnos.model.Negocio> negocioOpt = negocioRepository
-                    .findByCodigoAndActivoTrue(codigo.toLowerCase());
-            String ordenResenas = "reciente-antigua"; // Por defecto: más reciente primero
-
-            if (negocioOpt.isPresent() && negocioOpt.get().getOrdenResenas() != null) {
-                ordenResenas = negocioOpt.get().getOrdenResenas();
-            }
+            // Obtener orden de reseñas desde la config del negocio (NegocioData o colección global)
+            com.maxturnos.model.Negocio negocioConfig = negocioDataService.getNegocioConfig(codigo.toLowerCase());
+            String ordenResenas = (negocioConfig != null && negocioConfig.getOrdenResenas() != null && !negocioConfig.getOrdenResenas().isEmpty())
+                    ? negocioConfig.getOrdenResenas()
+                    : "reciente-antigua";
 
             // Ordenar según la preferencia del negocio
             switch (ordenResenas) {

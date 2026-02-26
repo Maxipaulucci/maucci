@@ -332,6 +332,12 @@ public class NegocioDataService {
         data.setDiasDisponibles(diasDisponibles != null ? diasDisponibles : new ArrayList<>());
         negocioDataRepository.save(negocioCodigo, data);
     }
+
+    public void setOrdenResenas(String negocioCodigo, String ordenResenas) {
+        NegocioData data = getOrCreate(negocioCodigo);
+        data.setOrdenResenas(ordenResenas != null ? ordenResenas : "reciente-antigua");
+        negocioDataRepository.save(negocioCodigo, data);
+    }
     
     /**
      * Obtiene la configuración del negocio: desde la colección global o, si no existe,
@@ -342,8 +348,18 @@ public class NegocioDataService {
         Optional<Negocio> opt = negocioRepository.findByCodigoAndActivoTrue(codigoLower);
         if (opt.isPresent()) {
             Negocio negocio = opt.get();
-            if (negocio.getHorarios() == null && negocioDataRepository.findById(codigoLower).isPresent()) {
-                negocio.setHorarios(getHorarios(codigoLower));
+            Optional<NegocioData> dataOpt = negocioDataRepository.findById(codigoLower);
+            if (dataOpt.isPresent()) {
+                if (negocio.getHorarios() == null) {
+                    negocio.setHorarios(getHorarios(codigoLower));
+                }
+                // Siempre devolver los días disponibles y orden de reseñas definidos en el panel (NegocioData)
+                List<Integer> dias = dataOpt.get().getDiasDisponibles();
+                negocio.setDiasDisponibles(dias != null && !dias.isEmpty()
+                    ? dias
+                    : Arrays.asList(1, 2, 3, 4, 5, 6));
+                String orden = dataOpt.get().getOrdenResenas();
+                negocio.setOrdenResenas(orden != null && !orden.isEmpty() ? orden : "reciente-antigua");
             }
             return negocio;
         }
@@ -355,6 +371,7 @@ public class NegocioDataService {
         n.setDiasDisponibles(data.getDiasDisponibles() != null && !data.getDiasDisponibles().isEmpty()
             ? data.getDiasDisponibles()
             : Arrays.asList(1, 2, 3, 4, 5, 6));
+        n.setOrdenResenas(data.getOrdenResenas() != null && !data.getOrdenResenas().isEmpty() ? data.getOrdenResenas() : "reciente-antigua");
         List<NegocioData.BloqueHorarioData> bloquesData = data.getBloquesHorario();
         List<Negocio.BloqueHorario> bloques = new ArrayList<>();
         if (bloquesData != null) {

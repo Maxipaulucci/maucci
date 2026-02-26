@@ -45,7 +45,7 @@ public class NegocioController {
             
             if (negocioOpt.isPresent()) {
                 Negocio negocio = negocioOpt.get();
-                // Enriquecer con categorías y bloques de horario desde la colección del negocio (NegocioData)
+                // Enriquecer con datos guardados en el panel (NegocioData): categorías, bloques y días disponibles
                 List<String> categoriasData = negocioDataService.getCategorias(codigoLower);
                 if (categoriasData != null && !categoriasData.isEmpty()) {
                     negocio.setCategorias(categoriasData);
@@ -64,6 +64,14 @@ public class NegocioController {
                     }
                 }
                 negocio.setBloquesHorario(bloques);
+                // Días disponibles y orden de reseñas: siempre devolver los guardados en el panel (NegocioData)
+                negocioDataService.get(codigoLower).ifPresent(data -> {
+                    List<Integer> dias = data.getDiasDisponibles();
+                    negocio.setDiasDisponibles(dias != null ? new java.util.ArrayList<>(dias) : new java.util.ArrayList<>());
+                    if (data.getOrdenResenas() != null && !data.getOrdenResenas().isEmpty()) {
+                        negocio.setOrdenResenas(data.getOrdenResenas());
+                    }
+                });
                 return ResponseEntity.ok(ApiResponse.success(negocio));
             }
             
@@ -101,6 +109,7 @@ public class NegocioController {
             @PathVariable String codigo,
             @RequestBody Map<String, String> request) {
         try {
+            String codigoLower = codigo.toLowerCase();
             String ordenResenas = request.get("ordenResenas");
             
             if (ordenResenas == null || ordenResenas.isEmpty()) {
@@ -117,14 +126,11 @@ public class NegocioController {
                     .body(ApiResponse.error("Valor de ordenamiento inválido"));
             }
             
-            Negocio negocio = negocioRepository
-                .findByCodigoAndActivoTrue(codigo.toLowerCase())
-                .orElseThrow(() -> new RuntimeException("Negocio no encontrado"));
+            // Guardar en NegocioData (colección del negocio) para que funcione aunque el negocio no esté en la colección global
+            negocioDataService.setOrdenResenas(codigoLower, ordenResenas);
             
-            negocio.setOrdenResenas(ordenResenas);
-            Negocio actualizado = negocioRepository.save(negocio);
-            
-            return ResponseEntity.ok(ApiResponse.success("Ordenamiento de reseñas actualizado exitosamente", actualizado));
+            Negocio respuesta = negocioDataService.getNegocioConfig(codigoLower);
+            return ResponseEntity.ok(ApiResponse.success("Ordenamiento de reseñas actualizado exitosamente", respuesta));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Error al actualizar ordenamiento: " + e.getMessage()));
