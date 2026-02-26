@@ -16,6 +16,8 @@ import com.maxturnos.service.ReservaService;
 import com.maxturnos.model.NegocioData;
 import com.maxturnos.util.ModelConverter;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +37,8 @@ import java.util.Map;
 @RequestMapping("/api/reservas")
 @CrossOrigin(origins = "*")
 public class ReservaController {
+
+    private static final Logger log = LoggerFactory.getLogger(ReservaController.class);
     
     private final ReservaService reservaService;
     private final NegocioRepository negocioRepository;
@@ -162,6 +166,9 @@ public class ReservaController {
                         : "Cliente";
                     nombreCliente = nombreCliente.trim();
                     
+                    String nombreServicio = reservaFinal.getServicio() != null ? reservaFinal.getServicio().getName() : "N/A";
+                    String duracionServicio = reservaFinal.getServicio() != null && reservaFinal.getServicio().getDuration() != null ? reservaFinal.getServicio().getDuration() : "N/A";
+                    String nombreProfesional = reservaFinal.getProfesional() != null ? reservaFinal.getProfesional().getName() : "N/A";
                     String asuntoCliente = "Confirmación de Turno - " + reservaFinal.getEstablecimiento();
                     String mensajeCliente = String.format(
                         "Hola %s,\n\n" +
@@ -179,20 +186,23 @@ public class ReservaController {
                         nombreCliente,
                         fechaFormateada,
                         reservaFinal.getHora(),
-                        reservaFinal.getServicio().getName(),
-                        reservaFinal.getProfesional().getName(),
-                        reservaFinal.getServicio().getDuration(),
+                        nombreServicio,
+                        nombreProfesional,
+                        duracionServicio,
                         reservaFinal.getNotas() != null && !reservaFinal.getNotas().trim().isEmpty() 
                             ? "- Notas: " + reservaFinal.getNotas() + "\n" 
                             : "",
                         reservaFinal.getEstablecimiento()
                     );
                     
-                    emailService.enviarEmailPersonalizado(
+                    boolean enviadoCliente = emailService.enviarEmailPersonalizado(
                         reservaFinal.getUsuarioEmail(),
                         asuntoCliente,
                         mensajeCliente
                     );
+                    if (!enviadoCliente) {
+                        log.warn("No se pudo enviar email de confirmación al cliente {}", reservaFinal.getUsuarioEmail());
+                    }
                 
                     // Email al negocio - Buscar el admin del negocio
                     // Intentar buscar primero por código, luego por nombre del negocio
@@ -235,22 +245,25 @@ public class ReservaController {
                             reservaFinal.getHora(),
                             nombreCliente,
                             reservaFinal.getUsuarioEmail(),
-                            reservaFinal.getServicio().getName(),
-                            reservaFinal.getProfesional().getName(),
-                            reservaFinal.getServicio().getDuration(),
+                            nombreServicio,
+                            nombreProfesional,
+                            duracionServicio,
                             reservaFinal.getNotas() != null && !reservaFinal.getNotas().trim().isEmpty() 
                                 ? "- Notas del cliente: " + reservaFinal.getNotas() + "\n" 
                                 : ""
                         );
                         
-                        emailService.enviarEmailPersonalizado(
+                        boolean enviadoNegocio = emailService.enviarEmailPersonalizado(
                             adminNegocio.getEmail(),
                             asuntoNegocio,
                             mensajeNegocio
                         );
+                        if (!enviadoNegocio) {
+                            log.warn("No se pudo enviar email de notificación de reserva al negocio {}", adminNegocio.getEmail());
+                        }
                     }
                 } catch (Exception e) {
-                    // No bloquear si falla el envío del email en segundo plano
+                    log.error("Error al enviar email de confirmación de reserva al cliente " + (reservaFinal != null ? reservaFinal.getUsuarioEmail() : "?"), e);
                 }
             }).start();
             
