@@ -10,7 +10,7 @@ import './TurnosReservados.css';
 
 const Horarios = () => {
   const { user } = useAuth();
-  const establecimiento = 'barberia_clasica';
+  const establecimiento = user?.nombreNegocio || 'barberia_clasica';
   const [team, setTeam] = useState([]); // Estado para el equipo cargado desde el backend
 
   // Función para convertir datos del backend al formato esperado
@@ -159,15 +159,24 @@ const Horarios = () => {
   };
 
   const toggleDiaSeleccionadoParaHorario = (dia) => {
-    if (!diasQueAbre.includes(dia)) return;
+    if (!diasQueAbre.includes(dia) || diasEnBloques.has(dia)) return;
     setDiasSeleccionadosParaHorario(prev =>
       prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia].sort((a, b) => a - b)
     );
   };
 
+  // Quitar de la selección los días que ya pertenecen a un bloque guardado
+  useEffect(() => {
+    setDiasSeleccionadosParaHorario(prev => {
+      const filtrados = prev.filter(d => !diasEnBloques.has(d));
+      return filtrados.length === prev.length ? prev : filtrados;
+    });
+  }, [bloquesHorario, diasEnBloques]);
+
   const handleAñadirHorario = () => {
-    if (diasSeleccionadosParaHorario.length === 0) {
-      setNotification({ message: 'Seleccioná al menos un día en la tabla para este horario', type: 'error' });
+    const diasParaBloque = diasSeleccionadosParaHorario.filter(d => !diasEnBloques.has(d));
+    if (diasParaBloque.length === 0) {
+      setNotification({ message: 'Seleccioná al menos un día disponible (que no esté ya en otro bloque)', type: 'error' });
       return;
     }
     if (!validarHoraDisplay(formPrimerHorario) || !validarHoraDisplay(formUltimoHorario)) {
@@ -184,12 +193,12 @@ const Horarios = () => {
     const id = nextBloqueId.current++;
     setBloquesHorario(prev => [...prev, {
       id,
-      dias: [...diasSeleccionadosParaHorario],
+      dias: [...diasParaBloque],
       inicio: formPrimerHorario,
       fin: formUltimoHorario,
       intervalo
     }]);
-    // Mantener los días seleccionados en la tabla ("Incluir en próximo horario") para que queden en ambos lugares
+    setDiasSeleccionadosParaHorario(prev => prev.filter(d => !diasParaBloque.includes(d)));
     setNotification({ message: 'Horario añadido para los días seleccionados', type: 'success' });
   };
 
@@ -2091,7 +2100,7 @@ const Horarios = () => {
                       <td>
                         <input
                           type="checkbox"
-                          checked={diasSeleccionadosParaHorario.includes(dia)}
+                          checked={diasSeleccionadosParaHorario.includes(dia) && !diasEnBloques.has(dia)}
                           onChange={() => toggleDiaSeleccionadoParaHorario(dia)}
                           disabled={!diasQueAbre.includes(dia) || diasEnBloques.has(dia)}
                           aria-label={`Incluir ${NOMBRES_DIAS[dia]} en próximo horario`}

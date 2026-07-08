@@ -26,7 +26,7 @@ const Resumen = () => {
   const [puntoSeleccionado, setPuntoSeleccionado] = useState(null); // Dato del punto seleccionado en el gráfico
 
   // Obtener código del negocio
-  const establecimiento = 'barberia_clasica';
+  const establecimiento = user?.nombreNegocio || 'barberia_clasica';
 
   // Cargar reservas del mes actual
   useEffect(() => {

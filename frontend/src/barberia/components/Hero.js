@@ -5,11 +5,11 @@ import { businessInfo } from '../data/sampleData';
 import { resenasService } from '../../services/api';
 import { negociosService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
+import { useEstablecimiento } from '../../context/EstablecimientoContext';
 import './Hero.css';
 
-const NEGOCIO_CODIGO = 'barberia_clasica';
-
 const Hero = () => {
+  const { codigo, to } = useEstablecimiento();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
@@ -56,8 +56,8 @@ const Hero = () => {
 
   // Cargar reseñas y negocio: mostrar caché al instante si existe (calificación y abierto/cerrado), luego refrescar en segundo plano
   useEffect(() => {
-    const cachedResenas = barberiaCache.getResenas(NEGOCIO_CODIGO);
-    const cachedNegocio = barberiaCache.getNegocio(NEGOCIO_CODIGO);
+    const cachedResenas = barberiaCache.getResenas(codigo);
+    const cachedNegocio = barberiaCache.getNegocio(codigo);
     const fromCache = (cachedResenas && Array.isArray(cachedResenas)) || cachedNegocio;
 
     if (cachedResenas && cachedResenas.length > 0) {
@@ -73,9 +73,9 @@ const Hero = () => {
 
     const cargarResenas = async () => {
       try {
-        const resenasResponse = await resenasService.obtenerResenasPublicas(NEGOCIO_CODIGO);
+        const resenasResponse = await resenasService.obtenerResenasPublicas(codigo);
         const resenasData = resenasResponse?.data ?? resenasResponse ?? [];
-        if (Array.isArray(resenasData)) barberiaCache.setResenas(NEGOCIO_CODIGO, resenasData);
+        if (Array.isArray(resenasData)) barberiaCache.setResenas(codigo, resenasData);
         if (resenasData.length > 0) {
           const promedio = resenasData.reduce((sum, r) => sum + r.rating, 0) / resenasData.length;
           setAverageRating(promedio);
@@ -93,9 +93,9 @@ const Hero = () => {
 
     const cargarNegocio = async () => {
       try {
-        const negocioResponse = await negociosService.obtenerNegocio(NEGOCIO_CODIGO);
+        const negocioResponse = await negociosService.obtenerNegocio(codigo);
         const negocio = negocioResponse?.data ?? negocioResponse;
-        if (negocio?.codigo) barberiaCache.setNegocio(NEGOCIO_CODIGO, negocio);
+        if (negocio?.codigo) barberiaCache.setNegocio(codigo, negocio);
         aplicarNegocio(negocio);
       } catch (err) {
         console.error('Error al cargar configuración del negocio (Hero):', err);
@@ -104,7 +104,7 @@ const Hero = () => {
 
     if (!fromCache) setIsLoading(true);
     Promise.all([cargarResenas(), cargarNegocio()]).finally(() => setIsLoading(false));
-  }, []);
+  }, [codigo]);
 
   // Verificar cada minuto si está cerrado (hora y día laboral)
   useEffect(() => {
@@ -181,10 +181,10 @@ const Hero = () => {
             </div>
 
             <div className="hero-actions">
-              <Link to="/barberia/reservar" className="btn btn-primary btn-lg">
+              <Link to={to('reservar')} className="btn btn-primary btn-lg">
                 Reservar turno
               </Link>
-              <Link to="/barberia/servicios" className="btn btn-outline btn-lg">
+              <Link to={to('servicios')} className="btn btn-outline btn-lg">
                 Ver Servicios
               </Link>
             </div>

@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaClock, FaStar, FaUsers, FaAward, FaInstagram, FaFacebook } from 'react-icons/fa';
 import { businessInfo } from '../data/sampleData';
 import { resenasService } from '../../services/api';
+import { useEstablecimiento } from '../../context/EstablecimientoContext';
+import { Link } from 'react-router-dom';
 import './About.css';
 
 const BarberiaAbout = () => {
+  const { codigo, to } = useEstablecimiento();
   const [averageRating, setAverageRating] = useState(0);
   const [isLoadingRating, setIsLoadingRating] = useState(true);
 
@@ -12,8 +15,7 @@ const BarberiaAbout = () => {
   useEffect(() => {
     const cargarCalificacion = async () => {
       try {
-        const negocioCodigo = 'barberia_clasica';
-        const resenasResponse = await resenasService.obtenerResenasPublicas(negocioCodigo);
+        const resenasResponse = await resenasService.obtenerResenasPublicas(codigo);
         const resenasData = resenasResponse.data || [];
         
         if (resenasData.length > 0) {
@@ -31,7 +33,7 @@ const BarberiaAbout = () => {
     };
     
     cargarCalificacion();
-  }, []);
+  }, [codigo]);
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, index) => (
       <FaStar 
@@ -250,12 +252,12 @@ const BarberiaAbout = () => {
               nos eligen una y otra vez.
             </p>
             <div className="cta-actions">
-              <a href="/barberia/reservar" className="btn btn-primary btn-lg">
+              <Link to={to('reservar')} className="btn btn-primary btn-lg">
                 Reservar Ahora
-              </a>
-              <a href="/barberia/servicios" className="btn btn-outline btn-lg">
+              </Link>
+              <Link to={to('servicios')} className="btn btn-outline btn-lg">
                 Ver Servicios
-              </a>
+              </Link>
             </div>
           </div>
         </section>

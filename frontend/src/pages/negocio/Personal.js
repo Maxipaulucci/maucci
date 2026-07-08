@@ -20,7 +20,7 @@ const capitalizeWords = (str) => {
 
 const Personal = () => {
   const { user } = useAuth();
-  const establecimiento = 'barberia_clasica'; // Por ahora hardcodeado, se puede obtener del contexto
+  const establecimiento = user?.nombreNegocio || 'barberia_clasica';
   const [isLoading, setIsLoading] = useState(true);
   const [miembros, setMiembros] = useState([]);
   const [modoEliminacion, setModoEliminacion] = useState(false);

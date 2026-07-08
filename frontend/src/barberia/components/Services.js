@@ -3,23 +3,15 @@ import { Link, useLocation } from 'react-router-dom';
 import { FaArrowRight } from 'react-icons/fa';
 import { servicioService, negociosService, diasCanceladosService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
+import { useEstablecimiento } from '../../context/EstablecimientoContext';
 import './Services.css';
 
 const Services = () => {
   const location = useLocation();
+  const { codigo: establecimiento, to } = useEstablecimiento();
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [services, setServices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Determinar el establecimiento basado en la ruta
-  const getEstablecimiento = () => {
-    if (location.pathname.includes('/barberia')) {
-      return 'barberia_clasica';
-    }
-    return 'barberia_clasica'; // Por defecto
-  };
-
-  const establecimiento = getEstablecimiento();
 
   // Función para convertir datos del backend al formato esperado
   const convertirServicioABackend = (serviciosBackend) => {
@@ -137,7 +129,7 @@ const Services = () => {
             {filteredServices.map(service => (
             <Link
               key={service.id}
-              to={`/barberia/reservar?service=${service.id}`}
+              to={`${to('reservar')}?service=${service.id}`}
               className="service-card service-card-link"
             >
               <div className="service-header">

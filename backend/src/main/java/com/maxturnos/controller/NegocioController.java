@@ -1,6 +1,7 @@
 package com.maxturnos.controller;
 
 import com.maxturnos.dto.ApiResponse;
+import com.maxturnos.dto.LocalAdheridoDTO;
 import com.maxturnos.model.Negocio;
 import com.maxturnos.repository.NegocioRepository;
 import com.maxturnos.service.NegocioDataService;
@@ -37,6 +38,17 @@ public class NegocioController {
         }
     }
     
+    @GetMapping("/locales-adheridos")
+    public ResponseEntity<ApiResponse<List<LocalAdheridoDTO>>> obtenerLocalesAdheridos() {
+        try {
+            List<LocalAdheridoDTO> locales = negocioDataService.listLocalesAdheridosPublicos();
+            return ResponseEntity.ok(ApiResponse.success(locales));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al obtener locales adheridos: " + e.getMessage()));
+        }
+    }
+    
     @GetMapping("/{codigo}")
     public ResponseEntity<ApiResponse<Negocio>> obtenerPorCodigo(@PathVariable String codigo) {
         try {
@@ -64,6 +76,7 @@ public class NegocioController {
                     }
                 }
                 negocio.setBloquesHorario(bloques);
+                negocio.setHorarios(negocioDataService.getHorarios(codigoLower));
                 // Días disponibles y orden de reseñas: siempre devolver los guardados en el panel (NegocioData)
                 negocioDataService.get(codigoLower).ifPresent(data -> {
                     List<Integer> dias = data.getDiasDisponibles();

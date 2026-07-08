@@ -3,11 +3,10 @@ import { FaStar, FaQuoteLeft, FaQuoteRight, FaChevronLeft, FaChevronRight } from
 import { useAuth } from '../../context/AuthContext';
 import { resenasService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
+import { useEstablecimiento } from '../../context/EstablecimientoContext';
 import ResenaModal from '../../components/shared/ResenaModal';
 import ResenaCompletaModal from '../../components/shared/ResenaCompletaModal';
 import './Reviews.css';
-
-const NEGOCIO_CODIGO = 'barberia_clasica';
 
 function formatResenas(resenasData) {
   if (!Array.isArray(resenasData)) return [];
@@ -30,6 +29,7 @@ function formatResenas(resenasData) {
 }
 
 const Reviews = () => {
+  const { codigo } = useEstablecimiento();
   const { isAuthenticated, user } = useAuth();
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const [isResenaModalOpen, setIsResenaModalOpen] = useState(false);
@@ -44,23 +44,23 @@ const Reviews = () => {
 
   // Cargar reseñas: mostrar caché al instante si existe, luego refrescar en segundo plano
   useEffect(() => {
-    const cached = barberiaCache.getResenas(NEGOCIO_CODIGO);
+    const cached = barberiaCache.getResenas(codigo);
     const fromCache = cached && Array.isArray(cached);
     if (fromCache) {
       setReviews(formatResenas(cached));
       setIsLoadingReviews(false);
     }
     cargarResenasAprobadas(fromCache);
-  }, []);
+  }, [codigo]);
 
   const cargarResenasAprobadas = async (backgroundRefresh = false) => {
     if (!backgroundRefresh) setIsLoadingReviews(true);
     try {
-      const response = await resenasService.obtenerResenasPublicas(NEGOCIO_CODIGO);
+      const response = await resenasService.obtenerResenasPublicas(codigo);
       const resenasData = response.data || [];
       const reviewsFormatted = formatResenas(resenasData);
       setReviews(reviewsFormatted);
-      barberiaCache.setResenas(NEGOCIO_CODIGO, resenasData);
+      barberiaCache.setResenas(codigo, resenasData);
     } catch (err) {
       console.error('Error al cargar reseñas:', err);
       setReviews([]);
@@ -125,7 +125,7 @@ const Reviews = () => {
     if (!user || !user.email) {
       throw new Error('Debes estar autenticado para enviar una reseña');
     }
-    await resenasService.crearResena(NEGOCIO_CODIGO, user.email, rating, resena);
+    await resenasService.crearResena(codigo, user.email, rating, resena);
     
     // Cerrar el modal
     setIsResenaModalOpen(false);

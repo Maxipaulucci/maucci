@@ -1,8 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import Header from './barberia/components/Header';
 import MaxturnosHeader from './maxturnos/components/Header';
-import Footer from './barberia/components/Footer';
 import MaxturnosFooter from './maxturnos/components/Footer';
 import NavBar from './components/negocio/NavBar';
 import { useScrollToTop } from './hooks/useScrollToTop';
@@ -17,13 +15,8 @@ import { ServicesModalProvider } from './maxturnos/context/ServicesModalContext'
 import ContactModal from './maxturnos/components/ContactModal';
 import ServicesModal from './maxturnos/components/ServicesModal';
 
-// Páginas de Barbería
-import BarberiaHome from './barberia/pages/Home';
-import BarberiaServices from './barberia/pages/Services';
-import BarberiaTeam from './barberia/pages/Team';
-import BarberiaReviews from './barberia/pages/Reviews';
-import BarberiaBooking from './barberia/pages/Booking';
-import BarberiaAbout from './barberia/pages/About';
+// Páginas de Barbería (web pública del negocio)
+import LocalNegocioRoutes from './barberia/LocalNegocioRoutes';
 
 // Páginas de Negocio
 import Horarios from './pages/negocio/Horarios';
@@ -43,7 +36,7 @@ const AppContent = () => {
   const location = useLocation();
   const { negocioNoEncontrado, user } = useAuth();
   const isMaxturnosPage = location.pathname === '/' || location.pathname === '/locales-adheridos';
-  const isNegocioPage = location.pathname.startsWith('/negocio');
+  const isPublicNegocioPage = location.pathname.startsWith('/local/') || location.pathname.startsWith('/barberia');
   const isSuperAdmin = user && user.isSuperAdmin === true;
   const isAdminWithNegocio = user && user.rol === 'admin' && user.nombreNegocio && !isSuperAdmin;
   
@@ -95,6 +88,21 @@ const AppContent = () => {
     );
   }
   
+  // Web pública de un negocio (/local/:codigo o /barberia legado)
+  if (isPublicNegocioPage) {
+    return (
+      <div className="App">
+        <ContactModalProvider>
+          <Routes>
+            <Route path="/local/:codigo/*" element={<LocalNegocioRoutes />} />
+            <Route path="/barberia/*" element={<LocalNegocioRoutes />} />
+          </Routes>
+          <ContactModal />
+        </ContactModalProvider>
+      </div>
+    );
+  }
+
   return (
     <div className="App">
       {isMaxturnosPage ? (
@@ -105,12 +113,6 @@ const AppContent = () => {
               <Routes>
                 <Route path="/" element={<MaxturnosHome />} />
                 <Route path="/locales-adheridos" element={<LocalesAdheridos />} />
-                <Route path="/barberia" element={<BarberiaHome />} />
-                <Route path="/barberia/servicios" element={<BarberiaServices />} />
-                <Route path="/barberia/equipo" element={<BarberiaTeam />} />
-                <Route path="/barberia/resenas" element={<BarberiaReviews />} />
-                <Route path="/barberia/reservar" element={<BarberiaBooking />} />
-                <Route path="/barberia/acerca" element={<BarberiaAbout />} />
               </Routes>
             </main>
             <MaxturnosFooter />
@@ -120,20 +122,14 @@ const AppContent = () => {
         </ContactModalProvider>
       ) : (
         <ContactModalProvider>
-          <Header />
+          <MaxturnosHeader />
           <main className="main-content">
             <Routes>
               <Route path="/" element={<MaxturnosHome />} />
               <Route path="/locales-adheridos" element={<LocalesAdheridos />} />
-              <Route path="/barberia" element={<BarberiaHome />} />
-              <Route path="/barberia/servicios" element={<BarberiaServices />} />
-              <Route path="/barberia/equipo" element={<BarberiaTeam />} />
-              <Route path="/barberia/resenas" element={<BarberiaReviews />} />
-              <Route path="/barberia/reservar" element={<BarberiaBooking />} />
-              <Route path="/barberia/acerca" element={<BarberiaAbout />} />
             </Routes>
           </main>
-          <Footer />
+          <MaxturnosFooter />
           <ContactModal />
         </ContactModalProvider>
       )}

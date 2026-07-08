@@ -8,11 +8,13 @@ import com.maxturnos.repository.NegocioRepository;
 import com.maxturnos.model.NegocioData;
 import com.maxturnos.repository.NegocioDataRepository;
 import com.maxturnos.service.EmailService;
+import com.maxturnos.security.JwtService;
+import com.maxturnos.security.SecurityUtils;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -42,17 +44,21 @@ public class AuthController {
     private final NegocioRepository negocioRepository;
     private final NegocioDataRepository negocioDataRepository;
     private final EmailService emailService;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthController(UsuarioRepository usuarioRepository,
                           NegocioRepository negocioRepository,
                           NegocioDataRepository negocioDataRepository,
-                          EmailService emailService) {
+                          EmailService emailService,
+                          PasswordEncoder passwordEncoder,
+                          JwtService jwtService) {
         this.usuarioRepository = usuarioRepository;
         this.negocioRepository = negocioRepository;
         this.negocioDataRepository = negocioDataRepository;
         this.emailService = emailService;
-        this.passwordEncoder = new BCryptPasswordEncoder();
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
     
     /**
@@ -88,6 +94,15 @@ public class AuthController {
             return texto == null ? null : texto.trim().toLowerCase();
         }
         return texto.trim().toLowerCase().replaceAll("\\s+", "_");
+    }
+
+    private String buildAuthToken(Usuario usuario) {
+        boolean isSuperAdmin = "pauluccimaximo81@gmail.com".equalsIgnoreCase(usuario.getEmail().trim());
+        return jwtService.generateToken(
+                usuario.getEmail(),
+                usuario.getRol(),
+                usuario.getNombreNegocio(),
+                isSuperAdmin);
     }
 
     private void limpiarPendientesExpirados() {
@@ -272,6 +287,7 @@ public class AuthController {
                     errorData.put("negocioNoEncontrado", true);
                     errorData.put("email", usuario.getEmail());
                     errorData.put("nombreNegocio", "No especificado");
+                    errorData.put("token", buildAuthToken(usuario));
                     return ResponseEntity.status(HttpStatus.OK)
                         .body(ApiResponse.error("Negocio no encontrado", errorData));
                 }
@@ -284,6 +300,7 @@ public class AuthController {
                     errorData.put("negocioNoEncontrado", true);
                     errorData.put("email", usuario.getEmail());
                     errorData.put("nombreNegocio", nombreNegocio);
+                    errorData.put("token", buildAuthToken(usuario));
                     return ResponseEntity.status(HttpStatus.OK)
                         .body(ApiResponse.error("Negocio no encontrado", errorData));
                 }
@@ -296,6 +313,7 @@ public class AuthController {
                     errorData.put("negocioNoEncontrado", true);
                     errorData.put("email", usuario.getEmail());
                     errorData.put("nombreNegocio", nombreNegocio);
+                    errorData.put("token", buildAuthToken(usuario));
                     return ResponseEntity.status(HttpStatus.OK)
                         .body(ApiResponse.error("Negocio no encontrado", errorData));
                 }
@@ -306,7 +324,9 @@ public class AuthController {
             data.put("emailVerificado", usuario.getEmailVerificado());
             data.put("rol", usuario.getRol());
             data.put("nombreNegocio", usuario.getNombreNegocio());
-            data.put("isSuperAdmin", "pauluccimaximo81@gmail.com".equalsIgnoreCase(usuario.getEmail().trim()));
+            boolean isSuperAdmin = "pauluccimaximo81@gmail.com".equalsIgnoreCase(usuario.getEmail().trim());
+            data.put("isSuperAdmin", isSuperAdmin);
+            data.put("token", buildAuthToken(usuario));
             
             return ResponseEntity.ok(ApiResponse.success("Inicio de sesión exitoso", data));
             
@@ -356,6 +376,11 @@ public class AuthController {
     @GetMapping("/mi-historial")
     public ResponseEntity<ApiResponse<List<Usuario.ReservaEnHistorial>>> getMiHistorial(@RequestParam String email) {
         try {
+            if (!SecurityUtils.canAccessEmail(email)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("No tenés permiso para realizar esta acción"));
+            }
+
             String emailLower = email != null ? email.toLowerCase().trim() : "";
             if (emailLower.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -378,6 +403,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> deleteAccount(@RequestBody Map<String, String> request) {
         try {
             String email = request.get("email");
+            if (!SecurityUtils.canAccessEmail(email)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("No tenés permiso para realizar esta acción"));
+            }
+
             if (email == null || email.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error("El email es requerido"));
@@ -530,6 +560,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> changePassword(@RequestBody Map<String, String> request) {
         try {
             String email = request.get("email");
+            if (!SecurityUtils.canAccessEmail(email)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("No tenés permiso para realizar esta acción"));
+            }
+
             String currentPassword = request.get("currentPassword");
             String newPassword = request.get("newPassword");
             

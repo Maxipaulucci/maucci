@@ -6,8 +6,7 @@ import './NegocioPage.css';
 
 const Resenas = () => {
   const { user } = useAuth();
-  // Código del negocio - usar directamente barberia_clasica
-  const establecimiento = 'barberia_clasica';
+  const establecimiento = user?.nombreNegocio || 'barberia_clasica';
   const [resenas, setResenas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');

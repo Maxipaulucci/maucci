@@ -1,13 +1,29 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+const getAuthToken = () => localStorage.getItem('token');
+
+export const setAuthToken = (token) => {
+  if (token) {
+    localStorage.setItem('token', token);
+  } else {
+    localStorage.removeItem('token');
+  }
+};
+
 // Función auxiliar para hacer peticiones
 const fetchAPI = async (endpoint, options = {}) => {
   try {
+    const token = getAuthToken();
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
+      headers,
       ...options
     });
 
@@ -208,8 +224,8 @@ export const reservasService = {
   },
 
   // Enviar email a un cliente
-  enviarEmailACliente: async (reservaId, asunto, mensaje) => {
-    return await fetchAPI(`/reservas/${reservaId}/enviar-email`, {
+  enviarEmailACliente: async (reservaId, asunto, mensaje, establecimiento) => {
+    return await fetchAPI(`/reservas/${reservaId}/enviar-email?establecimiento=${encodeURIComponent(establecimiento)}`, {
       method: 'POST',
       body: JSON.stringify({ asunto, mensaje })
     });
@@ -262,6 +278,11 @@ export const resenasService = {
 
 // Servicios de negocios
 export const negociosService = {
+  // Listar locales adheridos (público)
+  obtenerLocalesAdheridos: async () => {
+    return await fetchAPI('/negocios/locales-adheridos');
+  },
+
   // Obtener negocio por código
   obtenerNegocio: async (codigo) => {
     return await fetchAPI(`/negocios/${codigo}`);

@@ -1,15 +1,19 @@
 package com.maxturnos.service;
 
+import com.maxturnos.dto.LocalAdheridoDTO;
 import com.maxturnos.model.Negocio;
 import com.maxturnos.model.NegocioData;
 import com.maxturnos.repository.NegocioDataRepository;
 import com.maxturnos.repository.NegocioRepository;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -22,10 +26,14 @@ public class NegocioDataService {
     
     private final NegocioDataRepository negocioDataRepository;
     private final NegocioRepository negocioRepository;
+    private final MongoTemplate mongoTemplate;
     
-    public NegocioDataService(NegocioDataRepository negocioDataRepository, NegocioRepository negocioRepository) {
+    public NegocioDataService(NegocioDataRepository negocioDataRepository,
+                              NegocioRepository negocioRepository,
+                              MongoTemplate mongoTemplate) {
         this.negocioDataRepository = negocioDataRepository;
         this.negocioRepository = negocioRepository;
+        this.mongoTemplate = mongoTemplate;
     }
     
     /**
@@ -457,5 +465,102 @@ public class NegocioDataService {
         return getReservas(negocioCodigo).stream()
             .filter(r -> r.getServicio() != null && r.getServicio().getId().equals(servicioId))
             .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Lista negocios visibles para la página de Locales Adheridos y enlaces públicos.
+     */
+    public List<LocalAdheridoDTO> listLocalesAdheridosPublicos() {
+        Set<String> excluir = new HashSet<>(Arrays.asList("usuario", "negocios"));
+        List<String> codigos = new ArrayList<>();
+        for (String name : mongoTemplate.getCollectionNames()) {
+            if (!excluir.contains(name)) {
+                codigos.add(name);
+            }
+        }
+        codigos.sort(String::compareToIgnoreCase);
+
+        List<LocalAdheridoDTO> locales = new ArrayList<>();
+        for (String codigo : codigos) {
+            Optional<NegocioData> dataOpt = negocioDataRepository.findById(codigo);
+            NegocioData.PerfilPublicoData perfil = dataOpt.map(NegocioData::getPerfilPublico).orElse(null);
+            if (perfil != null && Boolean.FALSE.equals(perfil.getVisibleEnLocalesAdheridos())) {
+                continue;
+            }
+
+            List<NegocioData.ResenaData> resenas = dataOpt.map(NegocioData::getResenas).orElse(new ArrayList<>());
+            List<NegocioData.ResenaData> aprobadas = resenas.stream()
+                .filter(r -> Boolean.TRUE.equals(r.getAprobada()))
+                .collect(Collectors.toList());
+
+            double rating = 0;
+            if (!aprobadas.isEmpty()) {
+                rating = aprobadas.stream()
+                    .mapToInt(r -> r.getRating() != null ? r.getRating() : 0)
+                    .average()
+                    .orElse(0);
+            }
+
+            Negocio negocioGlobal = negocioRepository.findByCodigoAndActivoTrue(codigo).orElse(null);
+            String nombre = resolverNombrePublico(codigo, perfil, negocioGlobal);
+            String horarios = formatearHorariosPublicos(getHorarios(codigo));
+
+            LocalAdheridoDTO dto = new LocalAdheridoDTO();
+            dto.setCodigo(codigo);
+            dto.setNombre(nombre);
+            dto.setCategoria(perfil != null && perfil.getCategoria() != null ? perfil.getCategoria() : "Negocio");
+            dto.setDescripcion(perfil != null ? perfil.getDescripcion() : null);
+            dto.setDireccion(perfil != null ? perfil.getDireccion() : null);
+            dto.setTelefono(perfil != null ? perfil.getTelefono() : null);
+            dto.setRating(Math.round(rating * 10.0) / 10.0);
+            dto.setReviewCount(aprobadas.size());
+            dto.setHorarios(horarios);
+            dto.setImagen(resolverImagenPortada(codigo, perfil));
+            dto.setWebsite("/local/" + codigo);
+            locales.add(dto);
+        }
+        return locales;
+    }
+
+    private String resolverNombrePublico(String codigo, NegocioData.PerfilPublicoData perfil, Negocio negocioGlobal) {
+        if (perfil != null && perfil.getNombre() != null && !perfil.getNombre().trim().isEmpty()) {
+            return perfil.getNombre().trim();
+        }
+        if (negocioGlobal != null && negocioGlobal.getNombre() != null && !negocioGlobal.getNombre().trim().isEmpty()) {
+            return negocioGlobal.getNombre().trim();
+        }
+        return humanizarCodigo(codigo);
+    }
+
+    private String humanizarCodigo(String codigo) {
+        if (codigo == null || codigo.isEmpty()) return "";
+        String[] partes = codigo.split("_");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < partes.length; i++) {
+            if (i > 0) sb.append(' ');
+            String p = partes[i];
+            if (!p.isEmpty()) {
+                sb.append(Character.toUpperCase(p.charAt(0)));
+                if (p.length() > 1) sb.append(p.substring(1));
+            }
+        }
+        return sb.toString();
+    }
+
+    private String formatearHorariosPublicos(Negocio.HorariosConfig horarios) {
+        if (horarios == null) return "Consultar horarios";
+        String inicio = horarios.getInicio() != null ? horarios.getInicio() : "09:00";
+        String fin = horarios.getFin() != null ? horarios.getFin() : "20:00";
+        return inicio + " - " + fin;
+    }
+
+    private String resolverImagenPortada(String codigo, NegocioData.PerfilPublicoData perfil) {
+        if (perfil != null && perfil.getImagenPortada() != null && !perfil.getImagenPortada().trim().isEmpty()) {
+            return perfil.getImagenPortada().trim();
+        }
+        if ("barberia_clasica".equals(codigo)) {
+            return "/assets/img/establecimientos/barberia_ejemplo/portada/portada1.jpg";
+        }
+        return "/assets/img/establecimientos/barberia_ejemplo/portada/portada1.jpg";
     }
 }

@@ -29,8 +29,8 @@ export const maxturnosInfo = {
     {
       id: 4,
       title: "Notificaciones",
-      description: "Recordatorios automáticos por email y SMS",
-      icon: "📱"
+      description: "Recordatorios automáticos por email",
+      icon: "✉️"
     },
     {
       id: 5,
@@ -107,7 +107,7 @@ export const maxturnosInfo = {
       features: [
         "Todo lo del plan Básico",
         "Hasta 5 empleados",
-        "Notificaciones SMS",
+        "Recordatorios automáticos por email",
         "Reportes básicos",
         "Soporte prioritario",
         "Personalización avanzada"

@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { setAuthToken } from '../services/api';
 
 export const AuthContext = createContext();
 
@@ -16,11 +17,16 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Error al cargar usuario:', error);
         localStorage.removeItem('user');
+        setAuthToken(null);
       }
     }
     if (savedNegocioNoEncontrado) {
       try {
-        setNegocioNoEncontrado(JSON.parse(savedNegocioNoEncontrado));
+        const parsed = JSON.parse(savedNegocioNoEncontrado);
+        setNegocioNoEncontrado(parsed);
+        if (parsed.token) {
+          setAuthToken(parsed.token);
+        }
       } catch (error) {
         console.error('Error al cargar estado de negocio:', error);
         localStorage.removeItem('negocioNoEncontrado');
@@ -29,19 +35,27 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Función para iniciar sesión
-  const login = (email, rol = null, nombreNegocio = null, isSuperAdmin = false) => {
+  const login = (email, rol = null, nombreNegocio = null, isSuperAdmin = false, token = null) => {
     const userData = { email, rol, nombreNegocio, isSuperAdmin: !!isSuperAdmin };
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
+    setAuthToken(token);
     // Limpiar estado de negocio no encontrado al hacer login
     setNegocioNoEncontrado(null);
     localStorage.removeItem('negocioNoEncontrado');
+  };
+
+  const saveSessionToken = (token) => {
+    setAuthToken(token);
   };
 
   // Función para establecer que el negocio no fue encontrado
   const setNegocioNoEncontradoState = (data) => {
     setNegocioNoEncontrado(data);
     localStorage.setItem('negocioNoEncontrado', JSON.stringify(data));
+    if (data?.token) {
+      setAuthToken(data.token);
+    }
   };
 
   // Función para cerrar sesión
@@ -50,6 +64,7 @@ export const AuthProvider = ({ children }) => {
     setNegocioNoEncontrado(null);
     localStorage.removeItem('user');
     localStorage.removeItem('negocioNoEncontrado');
+    setAuthToken(null);
   };
 
   // Función para verificar si el usuario está autenticado
@@ -63,6 +78,7 @@ export const AuthProvider = ({ children }) => {
       login, 
       logout, 
       isAuthenticated,
+      saveSessionToken,
       negocioNoEncontrado,
       setNegocioNoEncontradoState
     }}>

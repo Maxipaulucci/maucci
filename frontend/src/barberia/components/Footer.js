@@ -4,11 +4,11 @@ import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaFacebook, FaInstagram, FaTwitter
 import { businessInfo } from '../data/sampleData';
 import { servicioService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
+import { useEstablecimiento } from '../../context/EstablecimientoContext';
 import './Footer.css';
 
-const ESTABLECIMIENTO = 'barberia_clasica';
-
 const Footer = () => {
+  const { codigo: establecimiento, to } = useEstablecimiento();
   const currentYear = new Date().getFullYear();
   const [categorias, setCategorias] = useState([]);
 
@@ -20,14 +20,14 @@ const Footer = () => {
       return unicas;
     };
 
-    const cached = barberiaCache.getServicios(ESTABLECIMIENTO);
+    const cached = barberiaCache.getServicios(establecimiento);
     if (cached && Array.isArray(cached)) {
       setCategorias(extraerCategorias(cached));
     }
 
     const cargarCategorias = async () => {
       try {
-        const res = await servicioService.obtenerServicios(ESTABLECIMIENTO);
+        const res = await servicioService.obtenerServicios(establecimiento);
         const datos = res?.data ?? res;
         if (Array.isArray(datos)) {
           setCategorias(extraerCategorias(datos));
@@ -37,7 +37,7 @@ const Footer = () => {
       }
     };
     cargarCategorias();
-  }, []);
+  }, [establecimiento]);
 
   return (
     <footer className="footer barberia-footer">
@@ -97,7 +97,7 @@ const Footer = () => {
               {categorias.map((cat) => (
                 <li key={cat}>
                   <Link
-                    to="/barberia/servicios"
+                    to={to('servicios')}
                     state={{ filter: cat, scrollToTop: true }}
                     className="footer-link"
                   >
@@ -107,7 +107,7 @@ const Footer = () => {
               ))}
               <li>
                 <Link
-                  to="/barberia/servicios"
+                  to={to('servicios')}
                   state={{ filter: 'Todos', scrollToTop: true }}
                   className="footer-link"
                 >

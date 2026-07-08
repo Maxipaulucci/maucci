@@ -5,17 +5,16 @@ import { timeSlots } from '../data/sampleData';
 import { reservasService, negociosService, personalService, servicioService, diasCanceladosService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
 import { useAuth } from '../../context/AuthContext';
+import { useEstablecimiento } from '../../context/EstablecimientoContext';
 import './Booking.css';
 
 const Booking = () => {
   const { user } = useAuth();
   const location = useLocation();
-  
-  // Función para formatear fecha sin problemas de zona horaria
+  const { codigo: establecimiento } = useEstablecimiento();
+
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    // Parsear la fecha directamente desde el string YYYY-MM-DD
-    // para evitar problemas de zona horaria
     const [year, month, day] = dateString.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     return date.toLocaleDateString('es-ES', {
@@ -24,20 +23,7 @@ const Booking = () => {
       day: 'numeric'
     });
   };
-  
-  // Determinar el establecimiento basado en la ruta
-  const getEstablecimiento = () => {
-    if (location.pathname.includes('/barberia')) {
-      return 'barberia_clasica';
-    }
-    // Agregar más establecimientos aquí según sea necesario
-    // if (location.pathname.includes('/maxturnos')) {
-    //   return 'maxturnos';
-    // }
-    return 'barberia_clasica'; // Por defecto
-  };
-  
-  const establecimiento = getEstablecimiento();
+
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');

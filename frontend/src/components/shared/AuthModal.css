@@ -9,8 +9,8 @@
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  padding: var(--spacing-md);
-  overflow: hidden;
+  padding: max(var(--spacing-md), env(safe-area-inset-top, 0px)) var(--spacing-md) max(var(--spacing-md), env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
   overscroll-behavior: contain;
 }
 
@@ -21,13 +21,15 @@
   padding-top: 50px;
   width: 100%;
   max-width: 450px;
-  max-height: 580px;
+  max-height: min(580px, calc(100dvh - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));
   position: relative;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   overscroll-behavior: contain;
+  margin: auto;
+  flex-shrink: 0;
 }
 
 .auth-modal-close {
@@ -60,6 +62,7 @@
   display: flex;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-xl);
+  flex-shrink: 0;
 }
 
 .auth-tab {
@@ -97,15 +100,14 @@
   overscroll-behavior: contain;
 }
 
-/* Scroll solo en registro */
+/* Scroll en formularios largos (registro) */
 .auth-form-scrollable {
   overflow-y: auto;
 }
 
-/* Formulario de verificación: menos espacio para que entre todo sin scroll */
+/* Formulario de verificación */
 .auth-form-verification {
   gap: var(--spacing-sm);
-  overflow-y: hidden;
 }
 
 .auth-form-verification .auth-submit-btn {
@@ -121,26 +123,22 @@
   margin-bottom: var(--spacing-xs);
 }
 
-/* Sin scroll en login */
-.auth-form:not(.auth-form-scrollable):not(.auth-form-verification) {
-  overflow-y: hidden;
-}
-
-/* Campos ocultos para mantener la altura en login */
-.auth-field-hidden {
-  opacity: 0;
-  pointer-events: none;
-  user-select: none;
-  position: relative;
-  height: auto;
-  margin: 0;
+.auth-forgot-password {
+  background: none;
+  border: none;
   padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: #6b7280;
+  font-style: italic;
+  font-size: 0.875rem;
+  text-align: left;
+  align-self: flex-start;
+  transition: color 0.2s ease;
 }
 
-.auth-field-hidden label,
-.auth-field-hidden input {
-  opacity: 0;
-  pointer-events: none;
+.auth-forgot-password:hover {
+  color: var(--text-primary);
 }
 
 /* Estilos para el scrollbar del formulario */
@@ -409,6 +407,7 @@ input.password-input[type="password"]::-webkit-strong-password-auto-fill-button 
   white-space: normal;
   overflow: visible;
   word-wrap: break-word;
+  flex-shrink: 0;
 }
 
 .auth-message-error {
@@ -553,7 +552,11 @@ input.password-input[type="password"]::-webkit-strong-password-auto-fill-button 
 /* Opciones de tipo de registro */
 .auth-register-options {
   text-align: center;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
+}
+
+.auth-form-register-choose {
+  justify-content: center;
 }
 
 .auth-register-options-title {
@@ -593,20 +596,24 @@ input.password-input[type="password"]::-webkit-strong-password-auto-fill-button 
   transform: translateY(0);
 }
 
-/* Responsive: altura fija del modal para que login y registro tengan el mismo tamaño */
+/* Responsive */
 @media (max-width: 768px) {
+  .auth-modal-overlay {
+    align-items: flex-start;
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+
   .auth-modal {
     padding: var(--spacing-lg);
     padding-top: 3rem;
     padding-bottom: var(--spacing-lg);
     max-width: 100%;
     width: 100%;
-    height: 440px;
-    min-height: 440px;
-    max-height: 440px;
+    max-height: calc(100dvh - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    border-radius: 12px;
   }
 
-  /* Evitar que la X se superponga: reservar zona superior y asegurar que el botón quede por encima */
   .auth-modal-close {
     top: 0.75rem;
     right: 0.75rem;
@@ -614,7 +621,7 @@ input.password-input[type="password"]::-webkit-strong-password-auto-fill-button 
   }
 
   .auth-tabs {
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
     flex-shrink: 0;
   }
   
@@ -623,35 +630,43 @@ input.password-input[type="password"]::-webkit-strong-password-auto-fill-button 
     font-size: 0.875rem;
   }
 
-  /* El formulario ocupa el espacio restante del modal y hace scroll si hace falta */
+  .auth-message {
+    flex-shrink: 0;
+    margin-bottom: var(--spacing-md);
+  }
+
   .auth-modal .auth-form {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* Colapsar espaciadores del login: elimina el espacio debajo del botón Iniciar sesión */
-  .auth-login-spacer {
-    height: 0 !important;
-    min-height: 0 !important;
-    overflow: hidden;
-    margin: 0 !important;
-    padding: 0 !important;
-    display: none;
+  .auth-form-verification {
+    overflow-y: auto;
   }
 
-  /* Registro (elegir tipo): centrar los dos botones en el mismo espacio que el login */
-  .auth-form-register-choose {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 0;
+  .auth-submit-btn {
+    margin-top: var(--spacing-md);
   }
 
-  .auth-form-register-choose .auth-register-spacer {
-    flex: 1;
-    min-height: 1.5rem;
-    height: auto !important;
+  .auth-submit-btn-login {
+    margin-top: var(--spacing-sm) !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .auth-modal {
+    padding: var(--spacing-md);
+    padding-top: 2.75rem;
+  }
+
+  .auth-form {
+    gap: var(--spacing-md);
+  }
+
+  .auth-verification-header h3 {
+    font-size: 1.25rem;
   }
 }
 

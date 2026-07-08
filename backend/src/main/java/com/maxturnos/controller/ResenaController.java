@@ -7,6 +7,7 @@ import com.maxturnos.model.NegocioData;
 import com.maxturnos.model.Usuario;
 import com.maxturnos.util.ModelConverter;
 import com.maxturnos.service.NegocioDataService;
+import com.maxturnos.security.SecurityUtils;
 import com.maxturnos.repository.UsuarioRepository;
 import com.maxturnos.repository.NegocioRepository;
 import jakarta.validation.Valid;
@@ -52,6 +53,11 @@ public class ResenaController {
     @PostMapping
     public ResponseEntity<ApiResponse<Resena>> crearResena(@Valid @RequestBody ResenaRequest request) {
         try {
+            if (!SecurityUtils.canAccessEmail(request.getUsuarioEmail())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("No tenés permiso para realizar esta acción"));
+            }
+
             // Normalizar el código del negocio
             String negocioCodigo = request.getNegocioCodigo() != null
                     ? request.getNegocioCodigo().toLowerCase().trim()

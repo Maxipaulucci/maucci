@@ -153,34 +153,26 @@ button.header-contact-item {
   display: none;
 }
 
-/* Botón Horarios: solo en responsive; en desktop no se muestra */
-.header-horarios-mobile {
-  display: none;
-}
-
-/* En desktop (pantalla grande): ocultar botón Horarios y mostrar solo el texto de horarios */
-@media (min-width: 769px) {
-  .header-horarios-mobile {
-    display: none !important;
-  }
-  .header-horarios-desktop {
-    display: flex !important;
-  }
-}
-
-.info-item-center {
+/* Botón Horarios centrado en la barra superior */
+.header-horarios-btn.info-item-center {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
 }
 
-/* Horarios: en desktop una sola línea con " | " entre Lun-Vie y Sáb */
-.horario-text-wrapper {
-  display: inline;
+.header-horarios-btn-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
 }
 
-.horario-linea1::after {
-  content: ' | ';
+.header-horarios-btn-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  object-fit: contain;
 }
 
 .header-nav {
@@ -297,66 +289,19 @@ button.header-contact-item {
     gap: 1.25rem;
   }
 
-  /* En responsive ocultar horarios en texto y mostrar botón "Horarios" que abre modal */
-  .header-horarios-desktop {
-    display: none !important;
-  }
-  .header-horarios-mobile {
-    display: inline-flex !important;
-  }
-
-  /* Local adherido: en móvil mostrar solo ícono + "Maucci" en lugar del email completo */
+  /* En responsive ocultar email completo y mostrar solo "Maucci" */
   .header-contact-email-full {
     display: none !important;
   }
   .header-contact-maucci-label {
     display: inline !important;
   }
-  
-  /* Logos (calendario y reloj) centrados por encima de su texto */
-  .header-top .info-item {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: var(--spacing-xs);
-  }
-  
-  .info-item-center {
+
+  .header-horarios-btn.info-item-center {
     position: static;
     transform: none;
     flex: 1;
     justify-content: center;
-  }
-  
-  /* Sábado en segunda línea, debajo de Lun-Vie */
-  .header-top .horario-text-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .header-top .horario-linea1::after {
-    content: none;
-  }
-  
-  .info-item {
-    font-size: 0.75rem;
-  }
-  
-  .info-icon-container {
-    width: 28px;
-    height: 28px;
-  }
-  
-  .info-icon-img {
-    width: 20px;
-    height: 20px;
-  }
-  
-  .info-icon-img.calendario-logo {
-    width: 20px !important;
-    height: 20px !important;
-    transform: scale(1.5) !important;
   }
   
   .user-logo {
@@ -393,48 +338,11 @@ button.header-contact-item {
     gap: var(--spacing-xs);
   }
   
-  .info-item-center {
+  .header-horarios-btn.info-item-center {
     position: static;
     transform: none;
     flex: 1;
     justify-content: center;
-    text-align: center;
-  }
-  
-  /* Mantener iconos centrados arriba del texto y Sáb en segunda línea */
-  .header-top .info-item {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .header-top .horario-text-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .header-top .horario-linea1::after {
-    content: none;
-  }
-  
-  .info-item {
-    font-size: 0.7rem;
-  }
-  
-  .info-icon-container {
-    width: 26px;
-    height: 26px;
-  }
-  
-  .info-icon-img {
-    width: 18px;
-    height: 18px;
-  }
-  
-  .info-icon-img.calendario-logo {
-    width: 18px !important;
-    height: 18px !important;
-    transform: scale(1.5) !important;
   }
   
   .user-logo {
@@ -452,7 +360,7 @@ button.header-contact-item {
   }
 }
 
-/* Modal de horarios (solo en responsive al tocar botón Horarios) */
+/* Modal de horarios */
 .header-horarios-modal-overlay {
   position: fixed;
   top: 0;

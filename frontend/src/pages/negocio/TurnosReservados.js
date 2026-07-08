@@ -13,9 +13,7 @@ import './TurnosReservados.css';
 
 const TurnosReservados = () => {
   const { user } = useAuth();
-  // Obtener código del negocio (por ahora hardcodeado como 'barberia_clasica', 
-  // en el futuro se puede obtener del usuario o configuración)
-  const establecimiento = 'barberia_clasica';
+  const establecimiento = user?.nombreNegocio || 'barberia_clasica';
   
   // Inicializar con el primer día del mes actual
   const hoy = new Date();
@@ -443,7 +441,7 @@ const TurnosReservados = () => {
 
   const handleConfirmarEnviarEmail = async (asunto, mensaje) => {
     try {
-      await reservasService.enviarEmailACliente(reservaSeleccionada.id, asunto, mensaje);
+      await reservasService.enviarEmailACliente(reservaSeleccionada.id, asunto, mensaje, establecimiento);
       setShowEmailModal(false);
       setReservaSeleccionada(null);
       setNotification({ message: 'Email enviado exitosamente', type: 'success' });

@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { FaAward, FaStar, FaUserCircle } from 'react-icons/fa';
 import { personalService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
+import { useEstablecimiento } from '../../context/EstablecimientoContext';
 import './Team.css';
 
 const Team = () => {
-  const establecimiento = 'barberia_clasica'; // Por ahora hardcodeado
+  const { codigo: establecimiento } = useEstablecimiento();
   const [team, setTeam] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 

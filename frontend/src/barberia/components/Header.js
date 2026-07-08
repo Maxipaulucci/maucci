@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaBars, FaTimes, FaEnvelope, FaClock } from 'react-icons/fa';
+import { FaBars, FaTimes, FaEnvelope } from 'react-icons/fa';
 import { maxturnosInfo } from '../../maxturnos/data/maxturnosData';
 import { businessInfo } from '../data/sampleData';
 import { scrollToTop } from '../../hooks/useScrollToTop';
@@ -8,20 +8,21 @@ import { useAuth } from '../../context/AuthContext';
 import { useContactModal } from '../../maxturnos/context/ContactModalContext';
 import { negociosService, servicioService, personalService, resenasService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
+import { useEstablecimiento } from '../../context/EstablecimientoContext';
+import { obtenerLineasHorarios } from '../utils/horariosUtils';
 import AuthModal from '../../components/shared/AuthModal';
 import UserProfileModal from '../../components/shared/UserProfileModal';
 import './Header.css';
 
-const BARBERIA_ESTABLECIMIENTO = 'barberia_clasica';
-
 const Header = () => {
+  const { codigo, basePath, to } = useEstablecimiento();
   const { isAuthenticated } = useAuth();
   const { openContactModal } = useContactModal();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isHorariosModalOpen, setIsHorariosModalOpen] = useState(false);
-  const [diasDisponibles, setDiasDisponibles] = useState([]);
+  const [lineasHorarios, setLineasHorarios] = useState(['Cargando horarios...']);
   const location = useLocation();
 
   const toggleMenu = () => {
@@ -29,7 +30,7 @@ const Header = () => {
   };
 
   const isActive = (path) => {
-    return location.pathname === path;
+    return location.pathname === path || location.pathname === `${path}/`;
   };
 
   const handleNavClick = () => {
@@ -37,32 +38,57 @@ const Header = () => {
     setIsMenuOpen(false);
   };
 
-  // Prefetch servicios y personal al estar en barbería (para que Servicios/Equipo carguen al instante)
-  useEffect(() => {
-    if (!location.pathname.startsWith('/barberia')) return;
-    servicioService.obtenerServicios(BARBERIA_ESTABLECIMIENTO).then((r) => {
-      const data = r.data ?? r;
-      if (data && Array.isArray(data)) barberiaCache.setServicios(BARBERIA_ESTABLECIMIENTO, data);
-    }).catch(() => {});
-    personalService.obtenerPersonal(BARBERIA_ESTABLECIMIENTO).then((r) => {
-      const data = r.data ?? r;
-      if (data && Array.isArray(data)) barberiaCache.setPersonal(BARBERIA_ESTABLECIMIENTO, data);
-    }).catch(() => {});
-    resenasService.obtenerResenasPublicas(BARBERIA_ESTABLECIMIENTO).then((r) => {
-      const data = r.data ?? r;
-      if (data && Array.isArray(data)) barberiaCache.setResenas(BARBERIA_ESTABLECIMIENTO, data);
-    }).catch(() => {});
-    negociosService.obtenerNegocio(BARBERIA_ESTABLECIMIENTO).then((r) => {
-      const data = r.data ?? r;
-      if (data && data.codigo) barberiaCache.setNegocio(BARBERIA_ESTABLECIMIENTO, data);
-    }).catch(() => {});
-  }, [location.pathname]);
-
-  // Función para formatear los horarios (estático); devuelve [línea1, línea2] para poder mostrar Sáb en segunda línea en responsive
-  const formatearHorarios = () => {
-    return ['Lun-Vie: 09:00 - 20:00', 'Sáb: 09:00 - 18:00'];
+  const aplicarHorariosDesdeNegocio = (negocio) => {
+    if (negocio) {
+      setLineasHorarios(obtenerLineasHorarios(negocio));
+    }
   };
-  const horarios = formatearHorarios();
+
+  const cargarHorariosNegocio = async () => {
+    const cached = barberiaCache.getNegocio(codigo);
+    if (cached) {
+      aplicarHorariosDesdeNegocio(cached);
+    }
+
+    try {
+      const response = await negociosService.obtenerNegocio(codigo);
+      const negocio = response.data ?? response;
+      if (negocio?.codigo) {
+        barberiaCache.setNegocio(codigo, negocio);
+        aplicarHorariosDesdeNegocio(negocio);
+      }
+    } catch (err) {
+      if (!cached) {
+        setLineasHorarios(['No se pudieron cargar los horarios']);
+      }
+    }
+  };
+
+  // Prefetch datos del negocio y horarios reales desde el panel
+  useEffect(() => {
+    const isNegocioPublico = location.pathname.startsWith('/local/') || location.pathname.startsWith('/barberia');
+    if (!isNegocioPublico) return;
+
+    cargarHorariosNegocio();
+
+    servicioService.obtenerServicios(codigo).then((r) => {
+      const data = r.data ?? r;
+      if (data && Array.isArray(data)) barberiaCache.setServicios(codigo, data);
+    }).catch(() => {});
+    personalService.obtenerPersonal(codigo).then((r) => {
+      const data = r.data ?? r;
+      if (data && Array.isArray(data)) barberiaCache.setPersonal(codigo, data);
+    }).catch(() => {});
+    resenasService.obtenerResenasPublicas(codigo).then((r) => {
+      const data = r.data ?? r;
+      if (data && Array.isArray(data)) barberiaCache.setResenas(codigo, data);
+    }).catch(() => {});
+  }, [location.pathname, codigo]);
+
+  const abrirModalHorarios = () => {
+    setIsHorariosModalOpen(true);
+    cargarHorariosNegocio();
+  };
 
   return (
     <header className="header">
@@ -77,28 +103,20 @@ const Header = () => {
               <span className="header-contact-maucci-label">Maucci</span>
             </button>
             
-            {/* Horarios - Desktop: texto visible en el centro */}
-            <div className="info-item info-item-center header-horarios-desktop">
-              <div className="info-icon-container">
-                <img 
-                  src="/assets/img/logos_genericos/reloj.png" 
-                  alt="Reloj" 
-                  className="info-icon-img"
-                />
-              </div>
-              <span className="horario-text-wrapper">
-                <span className="horario-linea1">{horarios[0]}</span>
-                <span className="horario-linea2">{horarios[1]}</span>
-              </span>
-            </div>
-            {/* Horarios - Responsive: botón que abre modal (mismo estilo que botón mail) */}
+            {/* Horarios: botón con reloj que abre modal con datos del panel */}
             <button
               type="button"
-              className="header-contact-item header-horarios-mobile"
-              onClick={() => setIsHorariosModalOpen(true)}
+              className="header-contact-item header-horarios-btn info-item-center"
+              onClick={abrirModalHorarios}
               aria-label="Ver horarios"
             >
-              <FaClock className="header-contact-icon" aria-hidden="true" />
+              <span className="header-horarios-btn-icon-wrap" aria-hidden="true">
+                <img
+                  src="/assets/img/logos_genericos/reloj.png"
+                  alt=""
+                  className="header-horarios-btn-icon"
+                />
+              </span>
               <span>Horarios</span>
             </button>
             
@@ -129,7 +147,7 @@ const Header = () => {
         <div className="container">
           <div className="nav-content">
             {/* Logo */}
-            <Link to="/barberia" className="logo" onClick={handleNavClick}>
+            <Link to={basePath} className="logo" onClick={handleNavClick}>
               <h1>{businessInfo.name}</h1>
             </Link>
 
@@ -137,8 +155,8 @@ const Header = () => {
             <ul className="nav-menu">
               <li>
                 <Link 
-                  to="/barberia" 
-                  className={`nav-link ${isActive('/barberia') ? 'active' : ''}`}
+                  to={basePath}
+                  className={`nav-link ${isActive(basePath) ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   Inicio
@@ -146,8 +164,8 @@ const Header = () => {
               </li>
               <li>
                 <Link 
-                  to="/barberia/servicios" 
-                  className={`nav-link ${isActive('/barberia/servicios') ? 'active' : ''}`}
+                  to={to('servicios')}
+                  className={`nav-link ${isActive(to('servicios')) ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   Servicios
@@ -155,8 +173,8 @@ const Header = () => {
               </li>
               <li>
                 <Link 
-                  to="/barberia/equipo" 
-                  className={`nav-link ${isActive('/barberia/equipo') ? 'active' : ''}`}
+                  to={to('equipo')}
+                  className={`nav-link ${isActive(to('equipo')) ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   Equipo
@@ -164,8 +182,8 @@ const Header = () => {
               </li>
               <li>
                 <Link 
-                  to="/barberia/resenas" 
-                  className={`nav-link ${isActive('/barberia/resenas') ? 'active' : ''}`}
+                  to={to('resenas')}
+                  className={`nav-link ${isActive(to('resenas')) ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   Reseñas
@@ -173,8 +191,8 @@ const Header = () => {
               </li>
               <li>
                 <Link 
-                  to="/barberia/acerca" 
-                  className={`nav-link ${isActive('/barberia/acerca') ? 'active' : ''}`}
+                  to={to('acerca')}
+                  className={`nav-link ${isActive(to('acerca')) ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   Acerca de
@@ -183,7 +201,7 @@ const Header = () => {
             </ul>
 
             {/* Botón de reserva */}
-            <Link to="/barberia/reservar" className="btn btn-primary btn-reserve" onClick={handleNavClick}>
+            <Link to={to('reservar')} className="btn btn-primary btn-reserve" onClick={handleNavClick}>
               Reservar turno
             </Link>
 
@@ -204,8 +222,8 @@ const Header = () => {
             <ul className="mobile-nav-menu">
               <li>
                 <Link 
-                  to="/barberia" 
-                  className={`mobile-nav-link ${isActive('/barberia') ? 'active' : ''}`}
+                  to={basePath}
+                  className={`mobile-nav-link ${isActive(basePath) ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   Inicio
@@ -213,8 +231,8 @@ const Header = () => {
               </li>
               <li>
                 <Link 
-                  to="/barberia/servicios" 
-                  className={`mobile-nav-link ${isActive('/barberia/servicios') ? 'active' : ''}`}
+                  to={to('servicios')}
+                  className={`mobile-nav-link ${isActive(to('servicios')) ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   Servicios
@@ -222,8 +240,8 @@ const Header = () => {
               </li>
               <li>
                 <Link 
-                  to="/barberia/equipo" 
-                  className={`mobile-nav-link ${isActive('/barberia/equipo') ? 'active' : ''}`}
+                  to={to('equipo')}
+                  className={`mobile-nav-link ${isActive(to('equipo')) ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   Equipo
@@ -231,8 +249,8 @@ const Header = () => {
               </li>
               <li>
                 <Link 
-                  to="/barberia/resenas" 
-                  className={`mobile-nav-link ${isActive('/barberia/resenas') ? 'active' : ''}`}
+                  to={to('resenas')}
+                  className={`mobile-nav-link ${isActive(to('resenas')) ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   Reseñas
@@ -240,8 +258,8 @@ const Header = () => {
               </li>
               <li>
                 <Link 
-                  to="/barberia/acerca" 
-                  className={`mobile-nav-link ${isActive('/barberia/acerca') ? 'active' : ''}`}
+                  to={to('acerca')}
+                  className={`mobile-nav-link ${isActive(to('acerca')) ? 'active' : ''}`}
                   onClick={handleNavClick}
                 >
                   Acerca de
@@ -254,7 +272,6 @@ const Header = () => {
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       <UserProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
 
-      {/* Modal de horarios (solo se usa en responsive al tocar el botón Horarios) */}
       {isHorariosModalOpen && (
         <div className="header-horarios-modal-overlay" onClick={() => setIsHorariosModalOpen(false)} aria-hidden="false">
           <div className="header-horarios-modal" onClick={e => e.stopPropagation()}>
@@ -263,8 +280,9 @@ const Header = () => {
               <button type="button" className="header-horarios-modal-close" onClick={() => setIsHorariosModalOpen(false)} aria-label="Cerrar">×</button>
             </div>
             <div className="header-horarios-modal-body">
-              <p className="header-horarios-modal-line">{horarios[0]}</p>
-              <p className="header-horarios-modal-line">{horarios[1]}</p>
+              {lineasHorarios.map((linea, index) => (
+                <p key={index} className="header-horarios-modal-line">{linea}</p>
+              ))}
             </div>
           </div>
         </div>
@@ -274,4 +292,3 @@ const Header = () => {
 };
 
 export default Header;
-

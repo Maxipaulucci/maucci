@@ -176,7 +176,8 @@ const AuthModal = ({ isOpen, onClose }) => {
         // Establecer el estado de negocio no encontrado
         setNegocioNoEncontradoState({
           email: response.data.email,
-          nombreNegocio: response.data.nombreNegocio
+          nombreNegocio: response.data.nombreNegocio,
+          token: response.data.token
         });
         // Cerrar el modal
         onClose();
@@ -185,7 +186,7 @@ const AuthModal = ({ isOpen, onClose }) => {
       
       setSuccess(response.message);
       // Guardar el usuario en el contexto y cerrar modal
-      login(formData.email, response.data?.rol, response.data?.nombreNegocio, response.data?.isSuperAdmin);
+      login(formData.email, response.data?.rol, response.data?.nombreNegocio, response.data?.isSuperAdmin, response.data?.token);
       
       // Si es super admin, ir al panel de negocios
       if (response.data?.isSuperAdmin) {
@@ -207,7 +208,8 @@ const AuthModal = ({ isOpen, onClose }) => {
       if (err.data && err.data.negocioNoEncontrado) {
         setNegocioNoEncontradoState({
           email: err.data.email,
-          nombreNegocio: err.data.nombreNegocio
+          nombreNegocio: err.data.nombreNegocio,
+          token: err.data.token
         });
         onClose();
         return;
@@ -762,32 +764,24 @@ const AuthModal = ({ isOpen, onClose }) => {
           <form className={`auth-form ${activeTab === 'register' ? 'auth-form-scrollable' : ''} ${activeTab === 'register' && !tipoRegistro ? 'auth-form-register-choose' : ''}`} onSubmit={handleSubmit}>
             {/* Opciones de tipo de registro (solo visible en registro) */}
             {activeTab === 'register' && !tipoRegistro && (
-              <>
-                {/* Espaciador antes de las opciones para igualar altura con login */}
-                <div className="auth-register-spacer" style={{ height: '180px' }}></div>
-                
-                <div className="auth-register-options">
-                  <div className="auth-register-options-buttons">
-                    <button
-                      type="button"
-                      className="auth-register-option-btn"
-                      onClick={() => setTipoRegistro('usuario')}
-                    >
-                      Registrar usuario
-                    </button>
-                    <button
-                      type="button"
-                      className="auth-register-option-btn"
-                      onClick={() => setTipoRegistro('negocio')}
-                    >
-                      Registrar negocio
-                    </button>
-                  </div>
+              <div className="auth-register-options">
+                <div className="auth-register-options-buttons">
+                  <button
+                    type="button"
+                    className="auth-register-option-btn"
+                    onClick={() => setTipoRegistro('usuario')}
+                  >
+                    Registrar usuario
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-register-option-btn"
+                    onClick={() => setTipoRegistro('negocio')}
+                  >
+                    Registrar negocio
+                  </button>
                 </div>
-
-                {/* Espaciador después de las opciones para igualar altura con login */}
-                <div className="auth-register-spacer" style={{ height: '180px' }}></div>
-              </>
+              </div>
             )}
 
             {/* Formulario completo (solo visible en login o cuando se seleccionó tipo de registro) */}
@@ -1001,65 +995,25 @@ const AuthModal = ({ isOpen, onClose }) => {
                   </div>
                 )}
 
-                {/* Espaciador fijo antes del botón en login (se colapsa en responsive) */}
-                {activeTab === 'login' && <div className="auth-login-spacer" style={{ height: '180px' }}></div>}
-
-                {/* Contenedor para texto y botón en login */}
-                {activeTab === 'login' && !needsVerification && !showForgotPasswordEmail ? (
-                  <>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0', marginTop: '0' }}>
-                      {/* Texto "¿Olvidaste tu contraseña?" solo en login */}
-                      <p 
-                        className="auth-forgot-password"
-                        onClick={handleForgotPassword}
-                        style={{ 
-                          cursor: 'pointer', 
-                          color: '#6b7280', 
-                          fontStyle: 'italic',
-                          fontSize: '0.875rem',
-                          textAlign: 'left',
-                          marginBottom: '0',
-                          marginTop: '0',
-                          paddingLeft: '0',
-                          paddingBottom: '0'
-                        }}
-                      >
-                        ¿Olvidaste tu contraseña?
-                      </p>
-
-                      {/* Botón de envío */}
-                      <button 
-                        type="submit" 
-                        className={`auth-submit-btn ${activeTab === 'login' ? 'auth-submit-btn-login' : ''}`}
-                        disabled={isLoading}
-                        style={{ marginTop: '0' }}
-                      >
-                        {isLoading 
-                          ? (activeTab === 'login' ? 'Iniciando sesión...' : 'Registrando...')
-                          : (activeTab === 'login' ? 'Iniciar sesión' : 'Registrarse')
-                        }
-                      </button>
-                    </div>
-                    {/* Espaciador después del botón (se colapsa en responsive) */}
-                    <div className="auth-login-spacer" style={{ height: '180px' }}></div>
-                  </>
-                ) : (
-                  <>
-                    {/* Botón de envío para registro */}
-                    <button 
-                      type="submit" 
-                      className={`auth-submit-btn ${activeTab === 'login' ? 'auth-submit-btn-login' : ''}`}
-                      disabled={isLoading}
-                    >
-                      {isLoading 
-                        ? (activeTab === 'login' ? 'Iniciando sesión...' : 'Registrando...')
-                        : (activeTab === 'login' ? 'Iniciar sesión' : 'Registrarse')
-                      }
-                    </button>
-                    {/* Espaciador después del botón (se colapsa en responsive) */}
-                    {activeTab === 'login' && <div className="auth-login-spacer" style={{ height: '180px' }}></div>}
-                  </>
+                {activeTab === 'login' && !needsVerification && !showForgotPasswordEmail && (
+                  <button
+                    type="button"
+                    className="auth-forgot-password"
+                    onClick={handleForgotPassword}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
                 )}
+
+                <button
+                  type="submit"
+                  className={`auth-submit-btn ${activeTab === 'login' ? 'auth-submit-btn-login' : ''}`}
+                  disabled={isLoading}
+                >
+                  {isLoading
+                    ? (activeTab === 'login' ? 'Iniciando sesión...' : 'Registrando...')
+                    : (activeTab === 'login' ? 'Iniciar sesión' : 'Registrarse')}
+                </button>
               </>
             )}
           </form>

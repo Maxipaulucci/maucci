@@ -6,7 +6,7 @@ import './Servicios.css';
 
 const Servicios = () => {
   const { user } = useAuth();
-  const establecimiento = 'barberia_clasica'; // Por ahora hardcodeado, se puede obtener del contexto
+  const establecimiento = user?.nombreNegocio || 'barberia_clasica';
   const [isLoading, setIsLoading] = useState(true);
   const [servicios, setServicios] = useState([]);
   const [modoEliminacion, setModoEliminacion] = useState(false);

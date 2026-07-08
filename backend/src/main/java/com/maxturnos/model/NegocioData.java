@@ -27,6 +27,9 @@ public class NegocioData {
 
     /** Email del usuario admin que registró este negocio. Vincula usuario.nombreNegocio ↔ documento.id y usuario.email ↔ mailAsociado. */
     private String mailAsociado;
+
+    /** Datos públicos para la web del cliente y locales adheridos. */
+    private PerfilPublicoData perfilPublico;
     
     // ========== RESERVAS ==========
     private List<ReservaData> reservas = new ArrayList<>();
@@ -63,6 +66,20 @@ public class NegocioData {
     private String ordenResenas;
     
     // ========== INNER CLASSES ==========
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PerfilPublicoData {
+        private String nombre;
+        private String categoria;
+        private String descripcion;
+        private String direccion;
+        private String telefono;
+        private String imagenPortada;
+        /** Si es false, no aparece en Locales Adheridos. Por defecto visible. */
+        private Boolean visibleEnLocalesAdheridos;
+    }
     
     @Data
     @NoArgsConstructor
