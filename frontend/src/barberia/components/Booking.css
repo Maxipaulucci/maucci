@@ -206,6 +206,32 @@
   font-size: 1.25rem;
 }
 
+.booking-loading-dias {
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.booking-loading-dias p {
+  margin: 0 0 var(--spacing-sm);
+  font-size: 1.125rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.booking-loading-dias-sub {
+  font-size: 0.9rem !important;
+  color: var(--text-secondary) !important;
+  font-weight: 400 !important;
+}
+
+.booking-sin-fechas {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+  font-size: 1rem;
+}
+
 .times-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

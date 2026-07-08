@@ -4,6 +4,20 @@ import { personalService } from '../../services/api';
 import './NegocioPage.css';
 import './Personal.css';
 
+/** Primera letra en mayúscula, resto en minúscula (ej: "coloracion" -> "Coloracion") */
+const capitalizeFirst = (str) => {
+  if (!str || typeof str !== 'string') return str || '';
+  const s = str.trim();
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+};
+
+/** Primera letra de cada palabra en mayúscula (ej: "rogrigo gonzales" -> "Rogrigo Gonzales") */
+const capitalizeWords = (str) => {
+  if (!str || typeof str !== 'string') return str || '';
+  return str.trim().split(/\s+/).map(capitalizeFirst).join(' ');
+};
+
 const Personal = () => {
   const { user } = useAuth();
   const establecimiento = 'barberia_clasica'; // Por ahora hardcodeado, se puede obtener del contexto
@@ -299,11 +313,11 @@ const Personal = () => {
 
     try {
       const personalData = {
-        nombre: formData.nombre.trim(),
-        rol: formData.rol.trim(),
+        nombre: capitalizeWords(formData.nombre.trim()),
+        rol: capitalizeFirst(formData.rol.trim()),
         avatar: formData.fotoPreview, // Ya validado que existe
-        specialties: formData.cualidades,
-        tituloCertificado: (formData.certificado || '').trim() || null
+        specialties: (formData.cualidades || []).map(capitalizeFirst),
+        tituloCertificado: (formData.certificado || '').trim() ? capitalizeFirst((formData.certificado || '').trim()) : null
       };
 
       if (miembroAModificar) {

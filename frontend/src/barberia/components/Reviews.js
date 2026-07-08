@@ -264,6 +264,28 @@ const Reviews = () => {
         </div>
         )}
 
+        {/* Flechas de navegación debajo de las tarjetas (visible en móvil, estilo carrusel) */}
+        {!isLoadingReviews && reviews.length > 0 && (
+        <div className="carousel-nav-bottom">
+          <button
+            type="button"
+            className="carousel-nav-btn carousel-nav-prev"
+            onClick={prevReviews}
+            aria-label="Reseñas anteriores"
+          >
+            <FaChevronLeft />
+          </button>
+          <button
+            type="button"
+            className="carousel-nav-btn carousel-nav-next"
+            onClick={nextReviews}
+            aria-label="Siguientes reseñas"
+          >
+            <FaChevronRight />
+          </button>
+        </div>
+        )}
+
         {/* Indicadores del carrusel */}
         {!isLoadingReviews && reviews.length > 0 && (
         <div className="carousel-indicators">

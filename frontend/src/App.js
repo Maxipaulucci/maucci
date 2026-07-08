@@ -13,7 +13,9 @@ import NegocioNoEncontrado from './components/shared/NegocioNoEncontrado';
 import MaxturnosHome from './maxturnos/pages/Home';
 import LocalesAdheridos from './maxturnos/pages/LocalesAdheridos';
 import { ContactModalProvider } from './maxturnos/context/ContactModalContext';
+import { ServicesModalProvider } from './maxturnos/context/ServicesModalContext';
 import ContactModal from './maxturnos/components/ContactModal';
+import ServicesModal from './maxturnos/components/ServicesModal';
 
 // Páginas de Barbería
 import BarberiaHome from './barberia/pages/Home';
@@ -97,24 +99,27 @@ const AppContent = () => {
     <div className="App">
       {isMaxturnosPage ? (
         <ContactModalProvider>
-          <MaxturnosHeader />
-          <main className="main-content">
-            <Routes>
-              <Route path="/" element={<MaxturnosHome />} />
-              <Route path="/locales-adheridos" element={<LocalesAdheridos />} />
-              <Route path="/barberia" element={<BarberiaHome />} />
-              <Route path="/barberia/servicios" element={<BarberiaServices />} />
-              <Route path="/barberia/equipo" element={<BarberiaTeam />} />
-              <Route path="/barberia/resenas" element={<BarberiaReviews />} />
-              <Route path="/barberia/reservar" element={<BarberiaBooking />} />
-              <Route path="/barberia/acerca" element={<BarberiaAbout />} />
-            </Routes>
-          </main>
-          <MaxturnosFooter />
-          <ContactModal />
+          <ServicesModalProvider>
+            <MaxturnosHeader />
+            <main className="main-content">
+              <Routes>
+                <Route path="/" element={<MaxturnosHome />} />
+                <Route path="/locales-adheridos" element={<LocalesAdheridos />} />
+                <Route path="/barberia" element={<BarberiaHome />} />
+                <Route path="/barberia/servicios" element={<BarberiaServices />} />
+                <Route path="/barberia/equipo" element={<BarberiaTeam />} />
+                <Route path="/barberia/resenas" element={<BarberiaReviews />} />
+                <Route path="/barberia/reservar" element={<BarberiaBooking />} />
+                <Route path="/barberia/acerca" element={<BarberiaAbout />} />
+              </Routes>
+            </main>
+            <MaxturnosFooter />
+            <ContactModal />
+            <ServicesModal />
+          </ServicesModalProvider>
         </ContactModalProvider>
       ) : (
-        <>
+        <ContactModalProvider>
           <Header />
           <main className="main-content">
             <Routes>
@@ -129,7 +134,8 @@ const AppContent = () => {
             </Routes>
           </main>
           <Footer />
-        </>
+          <ContactModal />
+        </ContactModalProvider>
       )}
     </div>
   );

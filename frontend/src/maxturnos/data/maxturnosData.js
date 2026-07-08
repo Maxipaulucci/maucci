@@ -6,7 +6,7 @@ export const maxturnosInfo = {
   email: "maucci81@gmail.com",
   phone: "+54 11 1234-5678",
   instagram: "paulucci.dev",
-  address: "Buenos Aires, Argentina",
+  address: "Buenos Aires",
   services: [
     {
       id: 1,

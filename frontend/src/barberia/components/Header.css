@@ -108,10 +108,79 @@
   transform: scale(1.5) !important;
 }
 
+/* Botón de email (mismo estilo que página principal Maucci, abre modal de consulta) */
+.header-contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #1e40af;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 3px rgba(30, 64, 175, 0.15);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+button.header-contact-item {
+  appearance: none;
+  -webkit-appearance: none;
+}
+.header-contact-item:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 6px rgba(30, 64, 175, 0.2);
+}
+.header-top .header-contact-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  color: #1e40af;
+  fill: currentColor;
+  border: none;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* En desktop: mostrar email completo; "Maucci" oculto (se muestra solo en responsive) */
+.header-contact-maucci-label {
+  display: none;
+}
+
+/* Botón Horarios: solo en responsive; en desktop no se muestra */
+.header-horarios-mobile {
+  display: none;
+}
+
+/* En desktop (pantalla grande): ocultar botón Horarios y mostrar solo el texto de horarios */
+@media (min-width: 769px) {
+  .header-horarios-mobile {
+    display: none !important;
+  }
+  .header-horarios-desktop {
+    display: flex !important;
+  }
+}
+
 .info-item-center {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+}
+
+/* Horarios: en desktop una sola línea con " | " entre Lun-Vie y Sáb */
+.horario-text-wrapper {
+  display: inline;
+}
+
+.horario-linea1::after {
+  content: ' | ';
 }
 
 .header-nav {
@@ -223,8 +292,33 @@
 /* Responsive */
 @media (max-width: 768px) {
   .header-info {
-    justify-content: space-between;
+    justify-content: center;
     text-align: left;
+    gap: 1.25rem;
+  }
+
+  /* En responsive ocultar horarios en texto y mostrar botón "Horarios" que abre modal */
+  .header-horarios-desktop {
+    display: none !important;
+  }
+  .header-horarios-mobile {
+    display: inline-flex !important;
+  }
+
+  /* Local adherido: en móvil mostrar solo ícono + "Maucci" en lugar del email completo */
+  .header-contact-email-full {
+    display: none !important;
+  }
+  .header-contact-maucci-label {
+    display: inline !important;
+  }
+  
+  /* Logos (calendario y reloj) centrados por encima de su texto */
+  .header-top .info-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--spacing-xs);
   }
   
   .info-item-center {
@@ -232,6 +326,17 @@
     transform: none;
     flex: 1;
     justify-content: center;
+  }
+  
+  /* Sábado en segunda línea, debajo de Lun-Vie */
+  .header-top .horario-text-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .header-top .horario-linea1::after {
+    content: none;
   }
   
   .info-item {
@@ -296,6 +401,22 @@
     text-align: center;
   }
   
+  /* Mantener iconos centrados arriba del texto y Sáb en segunda línea */
+  .header-top .info-item {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .header-top .horario-text-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .header-top .horario-linea1::after {
+    content: none;
+  }
+  
   .info-item {
     font-size: 0.7rem;
   }
@@ -329,5 +450,66 @@
   .nav-content {
     padding: 0 var(--spacing-sm);
   }
+}
+
+/* Modal de horarios (solo en responsive al tocar botón Horarios) */
+.header-horarios-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  padding: 1rem;
+}
+.header-horarios-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-width: 360px;
+  width: 100%;
+  overflow: hidden;
+}
+.header-horarios-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.header-horarios-modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+}
+.header-horarios-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+.header-horarios-modal-close:hover {
+  color: #1f2937;
+  background: #f3f4f6;
+}
+.header-horarios-modal-body {
+  padding: 1.25rem 1.5rem;
+}
+.header-horarios-modal-line {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--text-secondary, #4b5563);
+}
+.header-horarios-modal-line:last-child {
+  margin-bottom: 0;
 }
 

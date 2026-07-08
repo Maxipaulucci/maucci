@@ -8,7 +8,8 @@ const cache = {
   servicios: {},
   personal: {},
   resenas: {},
-  negocio: {}
+  negocio: {},
+  diasCancelados: {}
 };
 
 function getCached(key, establecimiento) {
@@ -31,5 +32,7 @@ export const barberiaCache = {
   getResenas: (establecimiento) => getCached('resenas', establecimiento),
   setResenas: (establecimiento, data) => setCached('resenas', establecimiento, data),
   getNegocio: (establecimiento) => getCached('negocio', establecimiento),
-  setNegocio: (establecimiento, data) => setCached('negocio', establecimiento, data)
+  setNegocio: (establecimiento, data) => setCached('negocio', establecimiento, data),
+  getDiasCancelados: (establecimiento) => getCached('diasCancelados', establecimiento),
+  setDiasCancelados: (establecimiento, data) => setCached('diasCancelados', establecimiento, data)
 };

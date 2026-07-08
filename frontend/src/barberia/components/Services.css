@@ -75,6 +75,17 @@
   border-color: var(--primary-color);
 }
 
+/* Tarjeta como enlace: toda el área es clicable, sin estilo de link por defecto */
+.service-card-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.service-card-link:hover {
+  color: inherit;
+}
+
 .service-header {
   margin-bottom: var(--spacing-lg);
 }

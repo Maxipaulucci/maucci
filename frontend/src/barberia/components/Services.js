@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaArrowRight } from 'react-icons/fa';
-import { servicioService } from '../../services/api';
+import { servicioService, negociosService, diasCanceladosService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
 import './Services.css';
 
@@ -33,6 +33,15 @@ const Services = () => {
     }));
   };
 
+  // Al llegar desde el footer (state.filter): aplicar filtro y scroll al inicio
+  useEffect(() => {
+    const state = location.state;
+    if (state?.filter) {
+      setSelectedCategory(state.filter);
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
+  }, [location.state]);
+
   // Cargar servicios: mostrar caché al instante si existe, luego actualizar en segundo plano
   useEffect(() => {
     const cachedRaw = barberiaCache.getServicios(establecimiento);
@@ -60,6 +69,29 @@ const Services = () => {
     };
 
     cargarServicios();
+  }, [establecimiento]);
+
+  // Prefetch en segundo plano: días abiertos y días cancelados para que Reservar cargue al instante
+  useEffect(() => {
+    if (!establecimiento) return;
+    const prefetchConfigReserva = async () => {
+      try {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const fechaDesde = hoy.toISOString().split('T')[0];
+        const [negocioResponse, diasCanceladosResponse] = await Promise.all([
+          negociosService.obtenerNegocio(establecimiento),
+          diasCanceladosService.obtenerDiasCancelados(establecimiento, fechaDesde).catch(() => ({ data: [] }))
+        ]);
+        const negocio = negocioResponse?.data ?? negocioResponse;
+        const diasCanceladosData = diasCanceladosResponse?.data ?? diasCanceladosResponse ?? [];
+        if (negocio) barberiaCache.setNegocio(establecimiento, negocio);
+        if (Array.isArray(diasCanceladosData)) barberiaCache.setDiasCancelados(establecimiento, diasCanceladosData);
+      } catch (err) {
+        console.error('Prefetch config reserva (Servicios):', err);
+      }
+    };
+    prefetchConfigReserva();
   }, [establecimiento]);
 
   // Obtener categorías únicas
@@ -103,7 +135,11 @@ const Services = () => {
         ) : (
           <div className="services-grid">
             {filteredServices.map(service => (
-            <div key={service.id} className="service-card">
+            <Link
+              key={service.id}
+              to={`/barberia/reservar?service=${service.id}`}
+              className="service-card service-card-link"
+            >
               <div className="service-header">
                 <h3 className="service-name">{service.name}</h3>
                 <span className="service-category">{service.category}</span>
@@ -137,15 +173,12 @@ const Services = () => {
               </div>
               
               <div className="service-footer">
-                <Link 
-                  to={`/barberia/reservar?service=${service.id}`}
-                  className="btn btn-primary service-btn"
-                >
+                <span className="btn btn-primary service-btn">
                   Reservar
                   <FaArrowRight className="btn-icon" />
-                </Link>
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
           </div>
         )}

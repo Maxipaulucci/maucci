@@ -201,10 +201,26 @@
   cursor: not-allowed !important;
 }
 
+/* Días cerrados por defecto (ej. domingos) - sin color rojo */
+.dia-cerrado {
+  background: #f3f4f6 !important;
+  border-color: #e5e7eb !important;
+  color: #6b7280 !important;
+  cursor: not-allowed !important;
+}
+
+.dia-cerrado:hover {
+  background: #e5e7eb !important;
+  border-color: #d1d5db !important;
+  color: #4b5563 !important;
+}
+
+/* Días cancelados manualmente (mantienen estilo rojo para distinguirlos) */
 .dia-cancelado {
-  background: #fde8e8 !important; /* rojo claro */
+  background: #fde8e8 !important;
   border-color: #fca5a5 !important;
   color: #b91c1c !important;
+  cursor: not-allowed !important;
 }
 
 .dia-cancelado:hover {
@@ -635,25 +651,83 @@
   background: #4b5563;
 }
 
-/* Responsive */
+/* Responsive - calendarios del panel de negocio (Horarios, TurnosReservados, Resumen, Ingresos) */
 @media (max-width: 768px) {
   .calendario-container {
     padding: 1rem;
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
   }
 
   .calendario-header {
-    flex-direction: column;
-    gap: 1rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+  }
+
+  .calendario-navegacion-izquierda,
+  .calendario-navegacion-derecha {
+    min-width: 0;
+    flex: 0 1 auto;
   }
 
   .mes-actual {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .btn-navegacion {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .react-calendar {
+    min-width: 0;
+    max-width: 100%;
+    width: 100% !important;
+  }
+
+  .react-calendar__month-view__weekdays {
+    padding: 0.4rem 0;
+  }
+
+  .react-calendar__month-view__weekdays__weekday {
+    font-size: 0.65rem;
+    letter-spacing: 0.02em;
+  }
+
+  .react-calendar__month-view__weekdays__weekday abbr {
+    font-size: 0.65rem;
+  }
+
+  .react-calendar__month-view__days {
+    padding: 0.25rem;
   }
 
   .react-calendar__tile {
-    min-height: 50px;
-    padding: 0.5rem;
-    font-size: 0.85rem;
+    min-height: 44px;
+    padding: 0.35rem;
+    font-size: 0.8rem;
+  }
+
+  /* Botones "Seleccionar día / días / mes" */
+  .resumen-modos-container {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .resumen-modo-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.875rem;
   }
 
   .reservas-badge {
@@ -674,6 +748,34 @@
 
   .reserva-card {
     padding: 1rem;
+  }
+}
+
+/* Pantallas muy estrechas: calendario más compacto */
+@media (max-width: 480px) {
+  .calendario-container {
+    padding: 0.75rem;
+  }
+
+  .react-calendar__month-view__weekdays__weekday,
+  .react-calendar__month-view__weekdays__weekday abbr {
+    font-size: 0.6rem;
+  }
+
+  .react-calendar__tile {
+    min-height: 38px;
+    padding: 0.25rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-navegacion {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .resumen-modo-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -1254,6 +1356,14 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: #ef4444;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.horario-bloqueado-manual-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b45309;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

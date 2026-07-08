@@ -40,10 +40,10 @@ const MaxturnosHeader = () => {
               <a href={`https://instagram.com/${maxturnosInfo.instagram}`} target="_blank" rel="noopener noreferrer" className="header-contact-item" aria-label="Instagram">
                 <FaInstagram className="header-contact-icon" aria-hidden="true" />
               </a>
-              <a href={`mailto:${maxturnosInfo.email}`} className="header-contact-item">
+              <button type="button" className="header-contact-item" onClick={openContactModal} aria-label="Enviar consulta">
                 <FaEnvelope className="header-contact-icon" aria-hidden="true" />
                 <span>{maxturnosInfo.email}</span>
-              </a>
+              </button>
             </div>
             <div className="user-logo" onClick={() => {
               if (isAuthenticated()) {
@@ -70,7 +70,7 @@ const MaxturnosHeader = () => {
               <h1>{maxturnosInfo.name}</h1>
             </Link>
 
-            {/* Navegación desktop */}
+            {/* Navegaci?n desktop */}
             <ul className="nav-menu">
               <li>
                 <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`} onClick={handleNavClick}>
@@ -100,27 +100,20 @@ const MaxturnosHeader = () => {
           </div>
         </div>
 
-        {/* Menú móvil */}
+        {/* Menú móvil: dropdown debajo del botón hamburguesa, sin Contáctanos (ya está en la barra) */}
         <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
-          <div className="container">
-            <ul className="mobile-nav-menu">
-              <li>
-                <Link to="/" className={`mobile-nav-link ${isActive('/') ? 'active' : ''}`} onClick={handleNavClick}>
-                  Inicio
-                </Link>
-              </li>
-              <li>
-                <Link to="/locales-adheridos" className={`mobile-nav-link ${isActive('/locales-adheridos') ? 'active' : ''}`} onClick={handleNavClick}>
-                  Locales Adheridos
-                </Link>
-              </li>
-              <li>
-                <button type="button" className="btn btn-primary btn-contact-mobile" onClick={() => { handleNavClick(); openContactModal(); }}>
-                  ¡Contáctanos!
-                </button>
-              </li>
-            </ul>
-          </div>
+          <ul className="mobile-nav-menu">
+            <li>
+              <Link to="/" className={`mobile-nav-link ${isActive('/') ? 'active' : ''}`} onClick={handleNavClick}>
+                Inicio
+              </Link>
+            </li>
+            <li>
+              <Link to="/locales-adheridos" className={`mobile-nav-link ${isActive('/locales-adheridos') ? 'active' : ''}`} onClick={handleNavClick}>
+                Locales Adheridos
+              </Link>
+            </li>
+          </ul>
         </div>
       </nav>
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />

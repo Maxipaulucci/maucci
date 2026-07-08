@@ -1,0 +1,115 @@
+.services-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+  animation: servicesModalFadeIn 0.2s ease-out;
+}
+
+@keyframes servicesModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.services-modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: servicesModalSlideUp 0.3s ease-out;
+}
+
+@keyframes servicesModalSlideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.services-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.services-modal-header h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.services-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  line-height: 1;
+}
+
+.services-modal-close:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.services-modal-list {
+  list-style: none;
+  margin: 0;
+  padding: 1rem 1.5rem;
+}
+
+.services-modal-item {
+  padding: 0.75rem 0;
+  font-size: 1rem;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+  font-weight: 500;
+}
+
+.services-modal-item:last-child {
+  border-bottom: none;
+}
+
+.services-modal-actions {
+  padding: 0 1.5rem 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.services-modal-btn-cerrar {
+  padding: 0.6rem 1.25rem;
+  border: none;
+  background: #1e40af;
+  color: white;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.services-modal-btn-cerrar:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}

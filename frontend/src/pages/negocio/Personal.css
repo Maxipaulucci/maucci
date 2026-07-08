@@ -184,6 +184,7 @@
 
 .miembro-certificado {
   margin-top: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .miembro-certificado-badge {

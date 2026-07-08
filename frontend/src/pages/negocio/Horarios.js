@@ -58,6 +58,8 @@ const Horarios = () => {
   const [esGeneral, setEsGeneral] = useState(false); // Indica si se seleccionó "General"
   const [horariosDisponibles, setHorariosDisponibles] = useState([]);
   const [horariosBloqueados, setHorariosBloqueados] = useState([]);
+  const [horariosReservados, setHorariosReservados] = useState([]); // Slots con turno reservado (solo etiqueta "Reservado")
+  const [horariosBloqueadosManualmente, setHorariosBloqueadosManualmente] = useState([]); // Slots bloqueados por el negocio (etiqueta "Bloqueado" + restaurar)
   const [horaLimite, setHoraLimite] = useState('20:00'); // Hora límite predeterminada
   const [horaMinima, setHoraMinima] = useState('08:00'); // Hora mínima predeterminada
   const [configuracionCargada, setConfiguracionCargada] = useState(false);
@@ -79,6 +81,14 @@ const Horarios = () => {
   const [formUltimoHorario, setFormUltimoHorario] = useState('17 00');
   const [formIntervalo, setFormIntervalo] = useState(15);
   const [guardandoHorarios, setGuardandoHorarios] = useState(false);
+  // Vista previa de ejemplo (solo en sesión, se pierde al recargar)
+  const [previewPrimerHorario, setPreviewPrimerHorario] = useState('08 00');
+  const [previewUltimoHorario, setPreviewUltimoHorario] = useState('19 00');
+  const [previewIntervalo, setPreviewIntervalo] = useState(15);
+  const [previewAceptada, setPreviewAceptada] = useState(false);
+  const [previewAceptadosInicio, setPreviewAceptadosInicio] = useState('08 00');
+  const [previewAceptadosFin, setPreviewAceptadosFin] = useState('19 00');
+  const [previewAceptadosIntervalo, setPreviewAceptadosIntervalo] = useState(15);
   // Días de la semana: 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
   const NOMBRES_DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   // diasQueAbre: array de 0-6. Si no está, ese día el local está cerrado (no aparece en la web).
@@ -337,8 +347,8 @@ const Horarios = () => {
             setFormIntervalo(Number(negocio.horarios.intervalo) || 15);
           }
         }
-        if (negocio && Array.isArray(negocio.diasDisponibles) && negocio.diasDisponibles.length > 0) {
-          setDiasQueAbre(negocio.diasDisponibles);
+        if (negocio && Array.isArray(negocio.diasDisponibles)) {
+          setDiasQueAbre([...negocio.diasDisponibles]);
         }
         if (negocio && Array.isArray(negocio.bloquesHorario)) {
           const mapeados = negocio.bloquesHorario.map((b, idx) => ({
@@ -614,6 +624,8 @@ const Horarios = () => {
       // Si no hay días seleccionados o no hay profesional, limpiar horarios
       setHorariosDisponibles([]);
       setHorariosBloqueados([]);
+      setHorariosReservados([]);
+      setHorariosBloqueadosManualmente([]);
       setHorariosEliminados(new Set());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -650,6 +662,8 @@ const Horarios = () => {
       
       let horariosFiltrados = [];
       let bloqueados = [];
+      let reservados = [];
+      let bloqueadosManualmente = [];
       
       if (esGeneral) {
         // Modo General: obtener horarios de todos los profesionales y todas las fechas, calcular intersección
@@ -739,6 +753,23 @@ const Horarios = () => {
           bloqueadosFecha.forEach(hora => bloqueadosSet.add(hora));
         });
         bloqueados = Array.from(bloqueadosSet);
+        // Reservados y bloqueados manualmente (API nueva): unión por fecha; si no vienen, compat: todo como reservado
+        const reservadosPorFecha = respuestas.map(resp => 
+          resp.data?.horariosReservados || resp.horariosReservados || []
+        );
+        const bloqueadosManualmentePorFecha = respuestas.map(resp => 
+          resp.data?.horariosBloqueadosManualmente || resp.horariosBloqueadosManualmente || []
+        );
+        const reservadosSet = new Set();
+        reservadosPorFecha.forEach(arr => arr.forEach(h => reservadosSet.add(h)));
+        const bloqueadosManualmenteSet = new Set();
+        bloqueadosManualmentePorFecha.forEach(arr => arr.forEach(h => bloqueadosManualmenteSet.add(h)));
+        reservados = Array.from(reservadosSet);
+        bloqueadosManualmente = Array.from(bloqueadosManualmenteSet);
+        // Si el backend no envía las listas nuevas, tratar todos los bloqueados como reservados
+        if (reservados.length === 0 && bloqueadosManualmente.length === 0 && bloqueados.length > 0) {
+          reservados = [...bloqueados];
+        }
       }
       
       // Obtener la hora límite correcta según el día activo (o el primero si hay múltiples)
@@ -761,11 +792,15 @@ const Horarios = () => {
       
       setHorariosDisponibles(horariosFiltrados);
       setHorariosBloqueados(bloqueados);
+      setHorariosReservados(reservados);
+      setHorariosBloqueadosManualmente(bloqueadosManualmente);
     } catch (err) {
       console.error('Error al cargar horarios:', err);
       setError('Error al cargar los horarios disponibles');
       setHorariosDisponibles([]);
       setHorariosBloqueados([]);
+      setHorariosReservados([]);
+      setHorariosBloqueadosManualmente([]);
     } finally {
       setIsLoading(false);
     }
@@ -1342,7 +1377,9 @@ const Horarios = () => {
           if (!fecha || isNaN(fecha.getTime())) return false;
           return formatearFecha(fecha) === fechaStr;
         });
-        if (esDomingo || esDiaCancelado) {
+        if (esDomingo) {
+          clases.push('dia-cerrado');
+        } else if (esDiaCancelado) {
           clases.push('dia-cancelado');
         }
       }
@@ -1966,19 +2003,33 @@ const Horarios = () => {
                 )}
 
                 {/* Horarios bloqueados/eliminados */}
-                {(horariosBloqueados.length > 0 || horariosEliminados.size > 0) && (
+                {(horariosReservados.length > 0 || horariosBloqueadosManualmente.length > 0 || horariosEliminados.size > 0) && (
                   <>
                     <h3 className="horarios-subtitulo horarios-subtitulo-bloqueados" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '2px solid #e5e7eb' }}>
                       Horarios Bloqueados
                     </h3>
                     <div className="horarios-grid">
-                      {horariosBloqueados.map((hora, index) => (
-                        <div key={`bloqueado-${index}`} className="horario-item bloqueado">
+                      {horariosReservados.map((hora, index) => (
+                        <div key={`reservado-${index}`} className="horario-item bloqueado">
                           <span className="horario-hora">{hora}</span>
                           <span className="horario-bloqueado-label">Reservado</span>
                         </div>
                       ))}
-                      {Array.from(horariosEliminados).map((hora, index) => (
+                      {horariosBloqueadosManualmente.map((hora, index) => (
+                        <div key={`bloqueado-manual-${index}`} className="horario-item eliminado">
+                          <span className="horario-hora">{hora}</span>
+                          <button
+                            className="horario-btn-restaurar"
+                            onClick={() => restaurarHorario(hora)}
+                            title="Restaurar horario"
+                          >
+                            ↻
+                          </button>
+                        </div>
+                      ))}
+                      {Array.from(horariosEliminados)
+                        .filter(hora => !horariosBloqueadosManualmente.includes(hora))
+                        .map((hora, index) => (
                         <div key={`eliminado-${index}`} className="horario-item eliminado">
                           <span className="horario-hora">{hora}</span>
                           <button
@@ -2003,6 +2054,12 @@ const Horarios = () => {
 
         {pestañaActiva === 'horarios' && (
           <div className="horarios-tab-content horarios-form-container">
+            {!configuracionCargada ? (
+              <div className="loading-calendario" style={{ padding: '3rem', textAlign: 'center' }}>
+                Cargando horarios...
+              </div>
+            ) : (
+              <>
             <p className="horarios-form-descripcion">
               Marcá qué días abre el local (los no marcados no aparecerán para reservar). Luego definí horarios y usá "Añadir horario" para configurar por día.
             </p>
@@ -2244,15 +2301,122 @@ const Horarios = () => {
                 {guardandoHorarios ? 'Guardando…' : 'Guardar horarios'}
               </button>
             </div>
-            {generarHorariosPreview(formPrimerHorario, formUltimoHorario, formIntervalo).length > 0 && (
-              <div className="horarios-form-preview">
-                <h4 className="horarios-form-preview-titulo">Vista previa de horarios</h4>
-                <div className="horarios-form-preview-grid">
-                  {generarHorariosPreview(formPrimerHorario, formUltimoHorario, formIntervalo).map((hora, i) => (
-                    <span key={i} className="horarios-form-preview-slot">{hora}</span>
-                  ))}
+
+            {/* Vista previa de ejemplo: inputs + Aceptar + grilla (solo en sesión, desaparece al recargar) */}
+            <div className="horarios-form-preview">
+              <h4 className="horarios-form-preview-titulo">Vista previa de horarios</h4>
+              <p className="horarios-form-hint" style={{ marginBottom: '1rem' }}>
+                Probá cómo quedarían los turnos con estos valores. Al recargar la página se borra el ejemplo.
+              </p>
+              <div className="horarios-form-fila horarios-form-preview-campos">
+                <div className="horarios-form-grupo">
+                  <label className="horarios-form-label">Primer horario</label>
+                  <input
+                    type="text"
+                    className="horarios-form-input"
+                    placeholder="08 00"
+                    value={previewPrimerHorario}
+                    maxLength={5}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/[^\d\s]/g, '').replace(/\s{2,}/g, ' ');
+                      if (v.length <= 5) {
+                        const partes = v.split(' ');
+                        const a = partes[0] || '';
+                        const b = partes[1] || '';
+                        if (a.length <= 2 && b.length <= 2) setPreviewPrimerHorario(v.trim() ? v : '');
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (!v) return;
+                      const partes = v.split(/\s+/);
+                      if (partes.length >= 2) {
+                        const h = partes[0].padStart(2, '0').slice(0, 2);
+                        const m = partes[1].padStart(2, '0').slice(0, 2);
+                        setPreviewPrimerHorario(`${h} ${m}`);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="horarios-form-grupo">
+                  <label className="horarios-form-label">Último horario</label>
+                  <input
+                    type="text"
+                    className="horarios-form-input"
+                    placeholder="19 00"
+                    value={previewUltimoHorario}
+                    maxLength={5}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/[^\d\s]/g, '').replace(/\s{2,}/g, ' ');
+                      if (v.length <= 5) {
+                        const partes = v.split(' ');
+                        const a = partes[0] || '';
+                        const b = partes[1] || '';
+                        if (a.length <= 2 && b.length <= 2) setPreviewUltimoHorario(v.trim() ? v : '');
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (!v) return;
+                      const partes = v.split(/\s+/);
+                      if (partes.length >= 2) {
+                        const h = partes[0].padStart(2, '0').slice(0, 2);
+                        const m = partes[1].padStart(2, '0').slice(0, 2);
+                        setPreviewUltimoHorario(`${h} ${m}`);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="horarios-form-grupo">
+                  <label className="horarios-form-label">Intervalo (minutos)</label>
+                  <input
+                    type="number"
+                    className="horarios-form-input horarios-form-input-num"
+                    min={5}
+                    max={120}
+                    step={5}
+                    value={previewIntervalo}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      if (!Number.isNaN(n)) setPreviewIntervalo(Math.max(5, Math.min(120, n)));
+                    }}
+                  />
                 </div>
               </div>
+              <button
+                type="button"
+                className="horarios-form-btn-aceptar-preview"
+                onClick={() => {
+                  if (!validarHoraDisplay(previewPrimerHorario) || !validarHoraDisplay(previewUltimoHorario)) {
+                    setNotification({ message: 'Revisá el formato de los horarios (ej: 08 00, 19 00)', type: 'error' });
+                    return;
+                  }
+                  const inicioApi = horaDisplayToApi(previewPrimerHorario);
+                  const finApi = horaDisplayToApi(previewUltimoHorario);
+                  if (finApi <= inicioApi) {
+                    setNotification({ message: 'El último horario debe ser posterior al primero', type: 'error' });
+                    return;
+                  }
+                  setPreviewAceptadosInicio(previewPrimerHorario);
+                  setPreviewAceptadosFin(previewUltimoHorario);
+                  setPreviewAceptadosIntervalo(previewIntervalo);
+                  setPreviewAceptada(true);
+                }}
+              >
+                Aceptar
+              </button>
+              {previewAceptada && generarHorariosPreview(previewAceptadosInicio, previewAceptadosFin, previewAceptadosIntervalo).length > 0 && (
+                <div className="horarios-form-preview-grid-wrapper">
+                  <h4 className="horarios-form-preview-subtitulo">Ejemplo con los valores elegidos</h4>
+                  <div className="horarios-form-preview-grid">
+                    {generarHorariosPreview(previewAceptadosInicio, previewAceptadosFin, previewAceptadosIntervalo).map((hora, i) => (
+                      <span key={i} className="horarios-form-preview-slot">{hora}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+              </>
             )}
           </div>
         )}

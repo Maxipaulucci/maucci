@@ -759,12 +759,12 @@ const AuthModal = ({ isOpen, onClose }) => {
           </form>
         ) : (
           /* Formulario normal (login/register) */
-          <form className={`auth-form ${activeTab === 'register' ? 'auth-form-scrollable' : ''}`} onSubmit={handleSubmit}>
+          <form className={`auth-form ${activeTab === 'register' ? 'auth-form-scrollable' : ''} ${activeTab === 'register' && !tipoRegistro ? 'auth-form-register-choose' : ''}`} onSubmit={handleSubmit}>
             {/* Opciones de tipo de registro (solo visible en registro) */}
             {activeTab === 'register' && !tipoRegistro && (
               <>
                 {/* Espaciador antes de las opciones para igualar altura con login */}
-                <div style={{ height: '180px' }}></div>
+                <div className="auth-register-spacer" style={{ height: '180px' }}></div>
                 
                 <div className="auth-register-options">
                   <div className="auth-register-options-buttons">
@@ -786,7 +786,7 @@ const AuthModal = ({ isOpen, onClose }) => {
                 </div>
 
                 {/* Espaciador después de las opciones para igualar altura con login */}
-                <div style={{ height: '180px' }}></div>
+                <div className="auth-register-spacer" style={{ height: '180px' }}></div>
               </>
             )}
 
@@ -1001,8 +1001,8 @@ const AuthModal = ({ isOpen, onClose }) => {
                   </div>
                 )}
 
-                {/* Espaciador fijo antes del botón en login para empujarlo hacia abajo */}
-                {activeTab === 'login' && <div style={{ height: '180px' }}></div>}
+                {/* Espaciador fijo antes del botón en login (se colapsa en responsive) */}
+                {activeTab === 'login' && <div className="auth-login-spacer" style={{ height: '180px' }}></div>}
 
                 {/* Contenedor para texto y botón en login */}
                 {activeTab === 'login' && !needsVerification && !showForgotPasswordEmail ? (
@@ -1040,8 +1040,8 @@ const AuthModal = ({ isOpen, onClose }) => {
                         }
                       </button>
                     </div>
-                    {/* Espaciador después del botón para mantener la misma altura que registro */}
-                    <div style={{ height: '180px' }}></div>
+                    {/* Espaciador después del botón (se colapsa en responsive) */}
+                    <div className="auth-login-spacer" style={{ height: '180px' }}></div>
                   </>
                 ) : (
                   <>
@@ -1056,8 +1056,8 @@ const AuthModal = ({ isOpen, onClose }) => {
                         : (activeTab === 'login' ? 'Iniciar sesión' : 'Registrarse')
                       }
                     </button>
-                    {/* Espaciador después del botón para mantener la misma altura que registro */}
-                    {activeTab === 'login' && <div style={{ height: '180px' }}></div>}
+                    {/* Espaciador después del botón (se colapsa en responsive) */}
+                    {activeTab === 'login' && <div className="auth-login-spacer" style={{ height: '180px' }}></div>}
                   </>
                 )}
               </>

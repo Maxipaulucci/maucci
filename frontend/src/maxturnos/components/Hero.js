@@ -2,10 +2,12 @@ import React from 'react';
 import { FaRocket, FaUsers, FaChartLine, FaMobileAlt } from 'react-icons/fa';
 import { maxturnosInfo } from '../data/maxturnosData';
 import { useContactModal } from '../context/ContactModalContext';
+import { useServicesModal } from '../context/ServicesModalContext';
 import './Hero.css';
 
 const MaxturnosHero = () => {
   const { openContactModal } = useContactModal();
+  const { openServicesModal } = useServicesModal();
   return (
     <section className="maxturnos-hero">
       <div className="container">
@@ -27,9 +29,9 @@ const MaxturnosHero = () => {
               <button type="button" className="btn btn-primary btn-lg" onClick={openContactModal}>
                 ¡Contáctanos!
               </button>
-              <a href="#servicios" className="btn btn-outline btn-lg">
+              <button type="button" className="btn btn-outline btn-lg" onClick={openServicesModal}>
                 Ver Servicios
-              </a>
+              </button>
             </div>
           </div>
 
@@ -92,7 +94,7 @@ const MaxturnosHero = () => {
             <div className="mockup-laptop">
               <div className="laptop-screen">
                 <div className="dashboard-preview">
-                  <div className="dashboard-header">Panel de Administración</div>
+                  <div className="dashboard-header">Panel de Negocio</div>
                   <div className="dashboard-stats">
                     <div className="dashboard-stat">
                       <span className="stat-label">Reservas Hoy</span>

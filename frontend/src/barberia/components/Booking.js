@@ -57,6 +57,7 @@ const Booking = () => {
   const [diasDisponibles, setDiasDisponibles] = useState([1, 2, 3, 4, 5, 6]); // Por defecto: Lunes a Sábado
   const [horaCierre, setHoraCierre] = useState('20:00');
   const [diasCancelados, setDiasCancelados] = useState([]); // Lista de días cancelados
+  const [isLoadingDias, setIsLoadingDias] = useState(true); // true hasta que se cargue la config (días abiertos + cancelados)
 
   // Función para convertir datos del backend al formato esperado
   const convertirPersonalABackend = (personalBackend) => {
@@ -132,8 +133,24 @@ const Booking = () => {
     cargarTodo();
   }, [establecimiento, location.search]);
 
-  // Cargar configuración del establecimiento (una sola llamada a negocio + días cancelados en paralelo)
+  // Cargar configuración del establecimiento: usar caché al instante si existe (precargada desde Servicios), luego refrescar en segundo plano
   useEffect(() => {
+    const cachedNegocio = barberiaCache.getNegocio(establecimiento);
+    const cachedDiasCancelados = barberiaCache.getDiasCancelados(establecimiento);
+    if (cachedNegocio || cachedDiasCancelados) {
+      if (cachedNegocio) {
+        setEstablecimientoConfig(cachedNegocio);
+        if (Array.isArray(cachedNegocio.diasDisponibles)) {
+          setDiasDisponibles([...cachedNegocio.diasDisponibles].sort((a, b) => a - b));
+        }
+        if (cachedNegocio.horarios?.fin) setHoraCierre(cachedNegocio.horarios.fin);
+      }
+      if (Array.isArray(cachedDiasCancelados)) setDiasCancelados(cachedDiasCancelados);
+      setIsLoadingDias(false);
+    } else {
+      setIsLoadingDias(true);
+    }
+
     const fetchEstablecimientoConfig = async () => {
       try {
         const hoy = new Date();
@@ -148,15 +165,17 @@ const Booking = () => {
         setEstablecimientoConfig(negocio || null);
         setDiasCancelados(Array.isArray(diasCanceladosData) ? diasCanceladosData : []);
         if (negocio) {
-          if (negocio.diasDisponibles) {
-            let dias = [...negocio.diasDisponibles];
-            if (!dias.includes(1)) dias.push(1);
-            setDiasDisponibles(dias.sort((a, b) => a - b));
+          if (Array.isArray(negocio.diasDisponibles)) {
+            setDiasDisponibles([...negocio.diasDisponibles].sort((a, b) => a - b));
           }
           if (negocio.horarios?.fin) setHoraCierre(negocio.horarios.fin);
+          barberiaCache.setNegocio(establecimiento, negocio);
         }
+        if (Array.isArray(diasCanceladosData)) barberiaCache.setDiasCancelados(establecimiento, diasCanceladosData);
       } catch (err) {
         console.error('Error al cargar configuración del establecimiento:', err);
+      } finally {
+        setIsLoadingDias(false);
       }
     };
     fetchEstablecimientoConfig();
@@ -448,18 +467,30 @@ const Booking = () => {
           {step === 2 && (
             <div className="booking-step">
               <h3>Selecciona una Fecha</h3>
-              <div className="dates-grid">
-                {availableDates.map(date => (
-                  <div 
-                    key={date.value} 
-                    className="date-option"
-                    onClick={() => handleDateSelect(date.value)}
-                  >
-                    <FaCalendarAlt className="date-icon" />
-                    <span>{date.label}</span>
+              {isLoadingDias ? (
+                <div className="booking-loading-dias">
+                  <p>Cargando días...</p>
+                  <p className="booking-loading-dias-sub">Se muestran solo los días en que el local está abierto</p>
+                </div>
+              ) : (
+                <>
+                  <div className="dates-grid">
+                    {availableDates.map(date => (
+                      <div 
+                        key={date.value} 
+                        className="date-option"
+                        onClick={() => handleDateSelect(date.value)}
+                      >
+                        <FaCalendarAlt className="date-icon" />
+                        <span>{date.label}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                  {availableDates.length === 0 && (
+                    <p className="booking-sin-fechas">No hay fechas disponibles para reservar en los próximos días.</p>
+                  )}
+                </>
+              )}
               <button 
                 onClick={() => setStep(1)} 
                 className="btn btn-secondary"

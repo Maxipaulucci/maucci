@@ -10,11 +10,14 @@
 
 .negocio-page-container {
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   background-color: white;
   border-radius: 8px;
   padding: var(--spacing-2xl, 3rem) var(--spacing-2xl, 3rem);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .negocio-page-container h1 {
@@ -24,6 +27,16 @@
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-lg);
   border-bottom: 2px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .negocio-page {
+    padding: var(--spacing-md);
+  }
+
+  .negocio-page-container {
+    padding: 1rem;
+  }
 }
 
 /* Pestañas Horarios / Modificar */
@@ -144,11 +157,45 @@
 
 .horarios-form-preview {
   padding-top: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
   border-top: 1px solid var(--border-color);
 }
 
 .horarios-form-preview-titulo {
   font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.horarios-form-preview-campos {
+  margin-bottom: 1rem;
+}
+
+.horarios-form-btn-aceptar-preview {
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: var(--primary-color, #1e40af);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.horarios-form-btn-aceptar-preview:hover {
+  background: #1d4ed8;
+}
+
+.horarios-form-preview-grid-wrapper {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.horarios-form-preview-subtitulo {
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 0.75rem;

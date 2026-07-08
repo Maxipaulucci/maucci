@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaBars, FaTimes } from 'react-icons/fa';
+import { FaBars, FaTimes, FaEnvelope, FaClock } from 'react-icons/fa';
+import { maxturnosInfo } from '../../maxturnos/data/maxturnosData';
 import { businessInfo } from '../data/sampleData';
 import { scrollToTop } from '../../hooks/useScrollToTop';
 import { useAuth } from '../../context/AuthContext';
+import { useContactModal } from '../../maxturnos/context/ContactModalContext';
 import { negociosService, servicioService, personalService, resenasService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
 import AuthModal from '../../components/shared/AuthModal';
@@ -14,9 +16,11 @@ const BARBERIA_ESTABLECIMIENTO = 'barberia_clasica';
 
 const Header = () => {
   const { isAuthenticated } = useAuth();
+  const { openContactModal } = useContactModal();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isHorariosModalOpen, setIsHorariosModalOpen] = useState(false);
   const [diasDisponibles, setDiasDisponibles] = useState([]);
   const location = useLocation();
 
@@ -54,57 +58,11 @@ const Header = () => {
     }).catch(() => {});
   }, [location.pathname]);
 
-  // Cargar días disponibles del negocio
-  useEffect(() => {
-    const cargarDiasDisponibles = async () => {
-      try {
-        const negocioCodigo = 'barberia_clasica';
-        const negocioResponse = await negociosService.obtenerNegocio(negocioCodigo);
-        const negocio = negocioResponse.data || negocioResponse;
-        
-        if (negocio && negocio.diasDisponibles) {
-          setDiasDisponibles(negocio.diasDisponibles);
-        }
-      } catch (err) {
-        console.error('Error al cargar días disponibles del negocio:', err);
-      }
-    };
-    
-    cargarDiasDisponibles();
-  }, []);
-
-  // Función para formatear los días disponibles
-  const formatearDiasDisponibles = () => {
-    if (!diasDisponibles || diasDisponibles.length === 0) {
-      return 'Lunes a sábados';
-    }
-    
-    const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const diasNombres = diasDisponibles.map(dia => nombresDias[dia]).sort();
-    
-    // Si son días consecutivos, formatear como rango
-    if (diasNombres.length === 6 && diasNombres.includes('Lunes') && diasNombres.includes('Sábado')) {
-      return 'Lunes a sábados';
-    }
-    
-    // Si son todos los días excepto domingo
-    if (diasNombres.length === 6 && !diasNombres.includes('Domingo')) {
-      return 'Lunes a sábados';
-    }
-    
-    // Si son lunes a viernes
-    if (diasNombres.length === 5 && !diasNombres.includes('Sábado') && !diasNombres.includes('Domingo')) {
-      return 'Lunes a viernes';
-    }
-    
-    // En otros casos, mostrar los días separados por comas
-    return diasNombres.join(', ');
-  };
-
-  // Función para formatear los horarios (estático)
+  // Función para formatear los horarios (estático); devuelve [línea1, línea2] para poder mostrar Sáb en segunda línea en responsive
   const formatearHorarios = () => {
-    return 'Lun-Vie: 09:00 - 20:00 | Sáb: 09:00 - 18:00';
+    return ['Lun-Vie: 09:00 - 20:00', 'Sáb: 09:00 - 18:00'];
   };
+  const horarios = formatearHorarios();
 
   return (
     <header className="header">
@@ -112,20 +70,15 @@ const Header = () => {
       <div className="header-top">
         <div className="container">
           <div className="header-info">
-            {/* Días disponibles - Izquierda */}
-            <div className="info-item">
-              <div className="info-icon-container">
-                <img 
-                  src="/assets/img/logos_genericos/calendario.png" 
-                  alt="Calendario" 
-                  className="info-icon-img calendario-logo"
-                />
-              </div>
-              <span>{formatearDiasDisponibles()}</span>
-            </div>
+            {/* Email de contacto: abre modal de consulta. En responsive solo ícono + "Maucci" */}
+            <button type="button" className="header-contact-item" onClick={openContactModal} aria-label="Enviar consulta">
+              <FaEnvelope className="header-contact-icon" aria-hidden="true" />
+              <span className="header-contact-email-full">{maxturnosInfo.email}</span>
+              <span className="header-contact-maucci-label">Maucci</span>
+            </button>
             
-            {/* Horarios - Centro */}
-            <div className="info-item info-item-center">
+            {/* Horarios - Desktop: texto visible en el centro */}
+            <div className="info-item info-item-center header-horarios-desktop">
               <div className="info-icon-container">
                 <img 
                   src="/assets/img/logos_genericos/reloj.png" 
@@ -133,8 +86,21 @@ const Header = () => {
                   className="info-icon-img"
                 />
               </div>
-              <span>{formatearHorarios()}</span>
+              <span className="horario-text-wrapper">
+                <span className="horario-linea1">{horarios[0]}</span>
+                <span className="horario-linea2">{horarios[1]}</span>
+              </span>
             </div>
+            {/* Horarios - Responsive: botón que abre modal (mismo estilo que botón mail) */}
+            <button
+              type="button"
+              className="header-contact-item header-horarios-mobile"
+              onClick={() => setIsHorariosModalOpen(true)}
+              aria-label="Ver horarios"
+            >
+              <FaClock className="header-contact-icon" aria-hidden="true" />
+              <span>Horarios</span>
+            </button>
             
             {/* Perfil - Derecha */}
             <div 
@@ -281,21 +247,28 @@ const Header = () => {
                   Acerca de
                 </Link>
               </li>
-              <li>
-                <Link 
-                  to="/barberia/reservar" 
-                  className="btn btn-primary btn-reserve-mobile"
-                  onClick={handleNavClick}
-                >
-                  Reservar turno
-                </Link>
-              </li>
             </ul>
           </div>
         </div>
       </nav>
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       <UserProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+
+      {/* Modal de horarios (solo se usa en responsive al tocar el botón Horarios) */}
+      {isHorariosModalOpen && (
+        <div className="header-horarios-modal-overlay" onClick={() => setIsHorariosModalOpen(false)} aria-hidden="false">
+          <div className="header-horarios-modal" onClick={e => e.stopPropagation()}>
+            <div className="header-horarios-modal-header">
+              <h3 className="header-horarios-modal-title">Horarios</h3>
+              <button type="button" className="header-horarios-modal-close" onClick={() => setIsHorariosModalOpen(false)} aria-label="Cerrar">×</button>
+            </div>
+            <div className="header-horarios-modal-body">
+              <p className="header-horarios-modal-line">{horarios[0]}</p>
+              <p className="header-horarios-modal-line">{horarios[1]}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
