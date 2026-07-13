@@ -1,5 +1,6 @@
 package com.maxturnos.service;
 
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +23,18 @@ public class EmailService {
     
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
+    }
+
+    @PostConstruct
+    public void logEmailConfigurationStatus() {
+        if (isEmailConfigured()) {
+            log.info("Email SMTP configurado (remitente: {})", fromEmail);
+        } else {
+            log.error(
+                "Email SMTP NO configurado. Definí SPRING_MAIL_USERNAME y SPRING_MAIL_PASSWORD "
+                    + "en las variables de entorno del servidor (Render). Los mails no se enviarán."
+            );
+        }
     }
 
     /**
@@ -53,9 +66,12 @@ public class EmailService {
     }
     
     public boolean enviarEmailPersonalizado(String email, String asunto, String mensaje) {
-        if (fromEmail == null || fromEmail.isEmpty() || emailPassword == null || emailPassword.isEmpty()) {
-            log.warn("Email no configurado (spring.mail.username/password): no se envía email a {}. Configure SPRING_MAIL_USERNAME y SPRING_MAIL_PASSWORD.", email);
-            return true;
+        if (!isEmailConfigured()) {
+            log.error(
+                "Email no configurado: no se envía a {}. Configure SPRING_MAIL_USERNAME y SPRING_MAIL_PASSWORD en Render.",
+                email
+            );
+            return false;
         }
         if (email == null || email.trim().isEmpty()) {
             log.warn("Destinatario de email vacío, no se envía.");
@@ -68,7 +84,7 @@ public class EmailService {
             message.setSubject(asunto != null ? asunto : "(Sin asunto)");
             message.setText(mensaje != null ? mensaje : "");
             mailSender.send(message);
-            log.debug("Email enviado correctamente a {} (asunto: {})", email, asunto);
+            log.info("Email enviado correctamente a {} (asunto: {})", email, asunto);
             return true;
         } catch (Exception e) {
             log.error("Error al enviar email a {} (asunto: {}): {}", email, asunto, e.getMessage(), e);

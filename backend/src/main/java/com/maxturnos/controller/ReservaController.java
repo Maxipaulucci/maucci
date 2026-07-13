@@ -225,7 +225,21 @@ public class ReservaController {
                         }
                     }
                     
-                    if (adminNegocio != null && adminNegocio.getEmail() != null) {
+                    String emailNegocio = null;
+                    if (adminNegocio != null && adminNegocio.getEmail() != null && !adminNegocio.getEmail().trim().isEmpty()) {
+                        emailNegocio = adminNegocio.getEmail().trim();
+                    }
+
+                    // Fallback: mailAsociado del documento del negocio en MongoDB
+                    if (emailNegocio == null) {
+                        emailNegocio = negocioDataService.get(establecimientoLower)
+                            .map(NegocioData::getMailAsociado)
+                            .filter(mail -> mail != null && !mail.trim().isEmpty())
+                            .map(String::trim)
+                            .orElse(null);
+                    }
+
+                    if (emailNegocio != null) {
                         String asuntoNegocio = "Nueva Reserva - " + reservaFinal.getEstablecimiento();
                         String mensajeNegocio = String.format(
                             "Hola,\n\n" +
@@ -254,13 +268,18 @@ public class ReservaController {
                         );
                         
                         boolean enviadoNegocio = emailService.enviarEmailPersonalizado(
-                            adminNegocio.getEmail(),
+                            emailNegocio,
                             asuntoNegocio,
                             mensajeNegocio
                         );
                         if (!enviadoNegocio) {
-                            log.warn("No se pudo enviar email de notificación de reserva al negocio {}", adminNegocio.getEmail());
+                            log.warn("No se pudo enviar email de notificación de reserva al negocio {}", emailNegocio);
                         }
+                    } else {
+                        log.warn(
+                            "No se encontró email del negocio para {} (sin admin ni mailAsociado)",
+                            reservaFinal.getEstablecimiento()
+                        );
                     }
                 } catch (Exception e) {
                     log.error("Error al enviar email de confirmación de reserva al cliente " + (reservaFinal != null ? reservaFinal.getUsuarioEmail() : "?"), e);
