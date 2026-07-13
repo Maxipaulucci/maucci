@@ -84,7 +84,11 @@ public class NegocioController {
                     if (data.getOrdenResenas() != null && !data.getOrdenResenas().isEmpty()) {
                         negocio.setOrdenResenas(data.getOrdenResenas());
                     }
+                    negocio.setMercadoPagoHabilitado(negocioDataService.isMercadoPagoConfigurado(data));
                 });
+                if (negocio.getMercadoPagoHabilitado() == null) {
+                    negocio.setMercadoPagoHabilitado(false);
+                }
                 return ResponseEntity.ok(ApiResponse.success(negocio));
             }
             
@@ -94,6 +98,41 @@ public class NegocioController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{codigo}/mercadopago")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> obtenerEstadoMercadoPago(@PathVariable String codigo) {
+        try {
+            String codigoLower = codigo.toLowerCase();
+            boolean configurado = negocioDataService.isMercadoPagoConfigurado(codigoLower);
+            Map<String, Object> data = new HashMap<>();
+            data.put("configurado", configurado);
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al consultar Mercado Pago: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{codigo}/mercadopago")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> actualizarMercadoPago(
+            @PathVariable String codigo,
+            @RequestBody Map<String, String> body) {
+        try {
+            String codigoLower = codigo.toLowerCase();
+            String accessToken = body != null ? body.get("accessToken") : null;
+            negocioDataService.setMercadoPagoAccessToken(codigoLower, accessToken);
+            boolean configurado = negocioDataService.isMercadoPagoConfigurado(codigoLower);
+            Map<String, Object> data = new HashMap<>();
+            data.put("configurado", configurado);
+            return ResponseEntity.ok(ApiResponse.success(
+                configurado ? "Mercado Pago configurado correctamente" : "Mercado Pago desconectado",
+                data
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al guardar Mercado Pago: " + e.getMessage()));
         }
     }
     

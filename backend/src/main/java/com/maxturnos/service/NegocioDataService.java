@@ -354,20 +354,24 @@ public class NegocioDataService {
     public Negocio getNegocioConfig(String codigo) {
         String codigoLower = codigo.toLowerCase();
         Optional<Negocio> opt = negocioRepository.findByCodigoAndActivoTrue(codigoLower);
-        if (opt.isPresent()) {
+            if (opt.isPresent()) {
             Negocio negocio = opt.get();
             Optional<NegocioData> dataOpt = negocioDataRepository.findById(codigoLower);
             if (dataOpt.isPresent()) {
+                NegocioData data = dataOpt.get();
                 if (negocio.getHorarios() == null) {
                     negocio.setHorarios(getHorarios(codigoLower));
                 }
                 // Siempre devolver los días disponibles y orden de reseñas definidos en el panel (NegocioData)
-                List<Integer> dias = dataOpt.get().getDiasDisponibles();
+                List<Integer> dias = data.getDiasDisponibles();
                 negocio.setDiasDisponibles(dias != null && !dias.isEmpty()
                     ? dias
                     : Arrays.asList(1, 2, 3, 4, 5, 6));
-                String orden = dataOpt.get().getOrdenResenas();
+                String orden = data.getOrdenResenas();
                 negocio.setOrdenResenas(orden != null && !orden.isEmpty() ? orden : "reciente-antigua");
+                negocio.setMercadoPagoHabilitado(isMercadoPagoConfigurado(data));
+            } else {
+                negocio.setMercadoPagoHabilitado(false);
             }
             return negocio;
         }
@@ -394,7 +398,41 @@ public class NegocioDataService {
             }
         }
         n.setBloquesHorario(bloques);
+        n.setMercadoPagoHabilitado(isMercadoPagoConfigurado(data));
         return n;
+    }
+
+    public boolean isMercadoPagoConfigurado(String negocioCodigo) {
+        return findMercadoPagoAccessToken(negocioCodigo).isPresent();
+    }
+
+    public boolean isMercadoPagoConfigurado(NegocioData data) {
+        String token = data != null ? data.getMercadoPagoAccessToken() : null;
+        return token != null && !token.trim().isEmpty();
+    }
+
+    public Optional<String> findMercadoPagoAccessToken(String negocioCodigo) {
+        return negocioDataRepository.findById(negocioCodigo.toLowerCase())
+            .map(NegocioData::getMercadoPagoAccessToken)
+            .filter(token -> token != null && !token.trim().isEmpty())
+            .map(String::trim);
+    }
+
+    public void setMercadoPagoAccessToken(String negocioCodigo, String accessToken) {
+        String codigo = negocioCodigo.toLowerCase();
+        getOrCreate(codigo);
+        String value = accessToken != null ? accessToken.trim() : "";
+        negocioDataRepository.updateField(codigo, "mercadoPagoAccessToken", value);
+    }
+
+    public Optional<NegocioData.ServicioData> findServicioById(String negocioCodigo, Integer idServicio) {
+        if (idServicio == null) {
+            return Optional.empty();
+        }
+        return getServicios(negocioCodigo.toLowerCase()).stream()
+            .filter(s -> s.getActivo() == null || Boolean.TRUE.equals(s.getActivo()))
+            .filter(s -> idServicio.equals(s.getIdServicio()))
+            .findFirst();
     }
     
     // ========== MÉTODOS AUXILIARES ==========

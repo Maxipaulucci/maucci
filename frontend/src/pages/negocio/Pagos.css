@@ -1,0 +1,77 @@
+.pagos-page .pagos-intro {
+  color: var(--text-secondary, #666);
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+}
+
+.pagos-status {
+  display: inline-block;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.pagos-status.ok {
+  background: #e8f8ef;
+  color: #15803d;
+}
+
+.pagos-status.off {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.pagos-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 560px;
+}
+
+.pagos-form .form-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pagos-form .form-input {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.pagos-help {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+  line-height: 1.45;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.pagos-help a {
+  color: #009ee3;
+}
+
+.pagos-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.pagos-alert {
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.pagos-alert.error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.pagos-alert.ok {
+  background: #ecfdf5;
+  color: #047857;
+}

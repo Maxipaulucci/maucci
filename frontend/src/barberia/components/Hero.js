@@ -181,11 +181,8 @@ const Hero = () => {
             </div>
 
             <div className="hero-actions">
-              <Link to={to('reservar')} className="btn btn-primary btn-lg">
+              <Link to={to('servicios')} className="btn btn-primary btn-lg">
                 Reservar turno
-              </Link>
-              <Link to={to('servicios')} className="btn btn-outline btn-lg">
-                Ver Servicios
               </Link>
             </div>
           </div>

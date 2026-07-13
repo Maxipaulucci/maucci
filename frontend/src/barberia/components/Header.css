@@ -153,11 +153,17 @@ button.header-contact-item {
   display: none;
 }
 
-/* Botón Horarios centrado en la barra superior */
-.header-horarios-btn.info-item-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+/* Acciones a la derecha de la barra (Horarios + menú móvil) */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.nav-horarios-btn {
+  flex-shrink: 0;
 }
 
 .header-horarios-btn-icon-wrap {
@@ -196,9 +202,17 @@ button.header-contact-item {
 .nav-menu {
   display: flex;
   list-style: none;
+  align-items: center;
   gap: var(--spacing-xl);
   margin: 0;
   padding: 0;
+  flex: 1;
+  justify-content: center;
+}
+
+.nav-item-reserve {
+  display: flex;
+  align-items: center;
 }
 
 .nav-link {
@@ -276,9 +290,12 @@ button.header-contact-item {
 }
 
 .btn-reserve-mobile {
-  margin-top: var(--spacing-md);
+  display: flex;
+  margin: var(--spacing-sm) 0;
   width: 100%;
   justify-content: center;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 
 /* Responsive */
@@ -295,13 +312,6 @@ button.header-contact-item {
   }
   .header-contact-maucci-label {
     display: inline !important;
-  }
-
-  .header-horarios-btn.info-item-center {
-    position: static;
-    transform: none;
-    flex: 1;
-    justify-content: center;
   }
   
   .user-logo {
@@ -320,10 +330,6 @@ button.header-contact-item {
   
   .menu-toggle {
     display: block;
-  }
-  
-  .btn-reserve {
-    display: none;
   }
   
   .logo h1 {

@@ -103,23 +103,6 @@ const Header = () => {
               <span className="header-contact-maucci-label">Maucci</span>
             </button>
             
-            {/* Horarios: botón con reloj que abre modal con datos del panel */}
-            <button
-              type="button"
-              className="header-contact-item header-horarios-btn info-item-center"
-              onClick={abrirModalHorarios}
-              aria-label="Ver horarios"
-            >
-              <span className="header-horarios-btn-icon-wrap" aria-hidden="true">
-                <img
-                  src="/assets/img/logos_genericos/reloj.png"
-                  alt=""
-                  className="header-horarios-btn-icon"
-                />
-              </span>
-              <span>Horarios</span>
-            </button>
-            
             {/* Perfil - Derecha */}
             <div 
               className="user-logo" 
@@ -151,10 +134,10 @@ const Header = () => {
               <h1>{businessInfo.name}</h1>
             </Link>
 
-            {/* Navegación desktop */}
+            {/* Navegación desktop: Reservar (azul) en el medio, lleva a Servicios */}
             <ul className="nav-menu">
               <li>
-                <Link 
+                <Link
                   to={basePath}
                   className={`nav-link ${isActive(basePath) ? 'active' : ''}`}
                   onClick={handleNavClick}
@@ -163,16 +146,7 @@ const Header = () => {
                 </Link>
               </li>
               <li>
-                <Link 
-                  to={to('servicios')}
-                  className={`nav-link ${isActive(to('servicios')) ? 'active' : ''}`}
-                  onClick={handleNavClick}
-                >
-                  Servicios
-                </Link>
-              </li>
-              <li>
-                <Link 
+                <Link
                   to={to('equipo')}
                   className={`nav-link ${isActive(to('equipo')) ? 'active' : ''}`}
                   onClick={handleNavClick}
@@ -180,8 +154,17 @@ const Header = () => {
                   Equipo
                 </Link>
               </li>
+              <li className="nav-item-reserve">
+                <Link
+                  to={to('servicios')}
+                  className={`btn btn-primary btn-reserve ${isActive(to('servicios')) ? 'active' : ''}`}
+                  onClick={handleNavClick}
+                >
+                  Reservar turno
+                </Link>
+              </li>
               <li>
-                <Link 
+                <Link
                   to={to('resenas')}
                   className={`nav-link ${isActive(to('resenas')) ? 'active' : ''}`}
                   onClick={handleNavClick}
@@ -190,7 +173,7 @@ const Header = () => {
                 </Link>
               </li>
               <li>
-                <Link 
+                <Link
                   to={to('acerca')}
                   className={`nav-link ${isActive(to('acerca')) ? 'active' : ''}`}
                   onClick={handleNavClick}
@@ -200,19 +183,31 @@ const Header = () => {
               </li>
             </ul>
 
-            {/* Botón de reserva */}
-            <Link to={to('reservar')} className="btn btn-primary btn-reserve" onClick={handleNavClick}>
-              Reservar turno
-            </Link>
+            <div className="nav-actions">
+              <button
+                className="menu-toggle"
+                onClick={toggleMenu}
+                aria-label="Toggle menu"
+              >
+                {isMenuOpen ? <FaTimes /> : <FaBars />}
+              </button>
 
-            {/* Botón hamburguesa para móvil */}
-            <button 
-              className="menu-toggle"
-              onClick={toggleMenu}
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? <FaTimes /> : <FaBars />}
-            </button>
+              <button
+                type="button"
+                className="header-contact-item header-horarios-btn nav-horarios-btn"
+                onClick={abrirModalHorarios}
+                aria-label="Ver horarios"
+              >
+                <span className="header-horarios-btn-icon-wrap" aria-hidden="true">
+                  <img
+                    src="/assets/img/logos_genericos/reloj.png"
+                    alt=""
+                    className="header-horarios-btn-icon"
+                  />
+                </span>
+                <span>Horarios</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -221,7 +216,7 @@ const Header = () => {
           <div className="container">
             <ul className="mobile-nav-menu">
               <li>
-                <Link 
+                <Link
                   to={basePath}
                   className={`mobile-nav-link ${isActive(basePath) ? 'active' : ''}`}
                   onClick={handleNavClick}
@@ -230,16 +225,7 @@ const Header = () => {
                 </Link>
               </li>
               <li>
-                <Link 
-                  to={to('servicios')}
-                  className={`mobile-nav-link ${isActive(to('servicios')) ? 'active' : ''}`}
-                  onClick={handleNavClick}
-                >
-                  Servicios
-                </Link>
-              </li>
-              <li>
-                <Link 
+                <Link
                   to={to('equipo')}
                   className={`mobile-nav-link ${isActive(to('equipo')) ? 'active' : ''}`}
                   onClick={handleNavClick}
@@ -248,7 +234,16 @@ const Header = () => {
                 </Link>
               </li>
               <li>
-                <Link 
+                <Link
+                  to={to('servicios')}
+                  className="btn btn-primary btn-reserve-mobile"
+                  onClick={handleNavClick}
+                >
+                  Reservar turno
+                </Link>
+              </li>
+              <li>
+                <Link
                   to={to('resenas')}
                   className={`mobile-nav-link ${isActive(to('resenas')) ? 'active' : ''}`}
                   onClick={handleNavClick}
@@ -257,7 +252,7 @@ const Header = () => {
                 </Link>
               </li>
               <li>
-                <Link 
+                <Link
                   to={to('acerca')}
                   className={`mobile-nav-link ${isActive(to('acerca')) ? 'active' : ''}`}
                   onClick={handleNavClick}

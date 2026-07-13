@@ -25,6 +25,7 @@ const NavBar = () => {
     { to: '/negocio/clientes', label: 'Clientes' },
     { to: '/negocio/turnos', label: 'Turnos reservados' },
     { to: '/negocio/ingresos', label: 'Resumen' },
+    { to: '/negocio/pagos', label: 'Pagos' },
   ];
 
   return (

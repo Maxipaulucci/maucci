@@ -27,6 +27,7 @@ import Resumen from './pages/negocio/Resumen';
 import Resenas from './pages/negocio/Resenas';
 import Clientes from './pages/negocio/Clientes';
 import Bienvenida from './pages/negocio/Bienvenida';
+import Pagos from './pages/negocio/Pagos';
 import SuperAdminPage from './pages/superadmin/SuperAdminPage';
 
 import './styles/global.css';
@@ -81,6 +82,7 @@ const AppContent = () => {
             <Route path="/negocio/personal" element={<Personal />} />
             <Route path="/negocio/ingresos" element={<Resumen />} />
             <Route path="/negocio/resenas" element={<Resenas />} />
+            <Route path="/negocio/pagos" element={<Pagos />} />
             <Route path="/negocio/*" element={<Navigate to="/negocio/inicio" replace />} />
           </Routes>
         </main>

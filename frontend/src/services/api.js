@@ -240,6 +240,16 @@ export const reservasService = {
   }
 };
 
+// Pagos Mercado Pago
+export const pagosService = {
+  crearPreferencia: async ({ establecimiento, servicioId, reservaId, payerEmail }) => {
+    return await fetchAPI('/pagos/preferencia', {
+      method: 'POST',
+      body: JSON.stringify({ establecimiento, servicioId, reservaId, payerEmail })
+    });
+  }
+};
+
 // Servicios de reseñas
 export const resenasService = {
   // Crear nueva reseña
@@ -317,6 +327,17 @@ export const negociosService = {
     return await fetchAPI(`/negocios/${codigo}/categorias`, {
       method: 'PUT',
       body: JSON.stringify({ categorias })
+    });
+  },
+
+  obtenerEstadoMercadoPago: async (codigo) => {
+    return await fetchAPI(`/negocios/${codigo}/mercadopago`);
+  },
+
+  actualizarMercadoPago: async (codigo, accessToken) => {
+    return await fetchAPI(`/negocios/${codigo}/mercadopago`, {
+      method: 'PUT',
+      body: JSON.stringify({ accessToken: accessToken ?? '' })
     });
   }
 };

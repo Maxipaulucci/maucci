@@ -252,11 +252,8 @@ const BarberiaAbout = () => {
               nos eligen una y otra vez.
             </p>
             <div className="cta-actions">
-              <Link to={to('reservar')} className="btn btn-primary btn-lg">
+              <Link to={to('servicios')} className="btn btn-primary btn-lg">
                 Reservar Ahora
-              </Link>
-              <Link to={to('servicios')} className="btn btn-outline btn-lg">
-                Ver Servicios
               </Link>
             </div>
           </div>

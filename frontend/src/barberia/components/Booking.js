@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FaCalendarAlt, FaCheck } from 'react-icons/fa';
 import { timeSlots } from '../data/sampleData';
-import { reservasService, negociosService, personalService, servicioService, diasCanceladosService } from '../../services/api';
+import { reservasService, negociosService, personalService, servicioService, diasCanceladosService, pagosService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
 import { useAuth } from '../../context/AuthContext';
 import { useEstablecimiento } from '../../context/EstablecimientoContext';
+import { scrollToTop } from '../../hooks/useScrollToTop';
 import './Booking.css';
 
 const Booking = () => {
@@ -44,6 +45,13 @@ const Booking = () => {
   const [horaCierre, setHoraCierre] = useState('20:00');
   const [diasCancelados, setDiasCancelados] = useState([]); // Lista de días cancelados
   const [isLoadingDias, setIsLoadingDias] = useState(true); // true hasta que se cargue la config (días abiertos + cancelados)
+  const [isPaying, setIsPaying] = useState(false);
+  const [pagoError, setPagoError] = useState('');
+
+  // Al confirmar o cambiar de paso, subir al inicio
+  useEffect(() => {
+    scrollToTop();
+  }, [step, isSubmitted]);
 
   // Función para convertir datos del backend al formato esperado
   const convertirPersonalABackend = (personalBackend) => {
@@ -345,6 +353,31 @@ const Booking = () => {
     setSelectedBarber(null);
     setCustomerInfo({ notes: '' });
     setIsSubmitted(false);
+    setPagoError('');
+    setIsPaying(false);
+  };
+
+  const handlePagarMercadoPago = async () => {
+    if (!selectedService?.id) return;
+    setPagoError('');
+    setIsPaying(true);
+    try {
+      const response = await pagosService.crearPreferencia({
+        establecimiento,
+        servicioId: selectedService.id,
+        payerEmail: user?.email
+      });
+      const data = response.data ?? response;
+      const initPoint = data.initPoint;
+      if (!initPoint) {
+        throw new Error('No se recibió la URL de Mercado Pago');
+      }
+      window.location.href = initPoint;
+    } catch (err) {
+      console.error('Error al iniciar pago Mercado Pago:', err);
+      setPagoError(err.message || 'No se pudo iniciar el pago. Intentá de nuevo.');
+      setIsPaying(false);
+    }
   };
 
   if (isSubmitted) {
@@ -369,10 +402,31 @@ const Booking = () => {
             <div className="detail-item">
               <strong>Profesional:</strong> {selectedBarber.name}
             </div>
+            {selectedService.price && (
+              <div className="detail-item">
+                <strong>Monto:</strong> {selectedService.price}
+              </div>
+            )}
           </div>
-          <button onClick={resetBooking} className="btn btn-primary">
-            Hacer Nueva Reserva
-          </button>
+          {pagoError && <div className="booking-pago-error">{pagoError}</div>}
+          <div className="success-actions">
+            <button onClick={resetBooking} className="btn btn-primary">
+              Hacer Nueva Reserva
+            </button>
+            <button
+              type="button"
+              className="btn btn-mercadopago"
+              onClick={handlePagarMercadoPago}
+              disabled={isPaying}
+            >
+              <img
+                src="/assets/img/logos_genericos/mercadoPago.png"
+                alt=""
+                className="btn-mercadopago-logo"
+              />
+              <span>{isPaying ? 'Redirigiendo...' : 'Pagar'}</span>
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -381,11 +435,6 @@ const Booking = () => {
   return (
     <section className="booking" id="reservar">
       <div className="container">
-        <div className="section-header">
-          <h2>Reservar Turno</h2>
-          <p>Selecciona tu servicio y reserva tu turno de manera fácil y rápida</p>
-        </div>
-
         {/* Indicador de pasos */}
         <div className="booking-steps">
           {[1, 2, 3, 4, 5].map((stepNumber) => (

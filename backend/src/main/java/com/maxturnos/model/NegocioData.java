@@ -28,6 +28,12 @@ public class NegocioData {
     /** Email del usuario admin que registró este negocio. Vincula usuario.nombreNegocio ↔ documento.id y usuario.email ↔ mailAsociado. */
     private String mailAsociado;
 
+    /**
+     * Access Token de Mercado Pago del dueño (Checkout Pro).
+     * Nunca exponer en APIs públicas; solo usar en el backend al crear preferencias.
+     */
+    private String mercadoPagoAccessToken;
+
     /** Datos públicos para la web del cliente y locales adheridos. */
     private PerfilPublicoData perfilPublico;
     

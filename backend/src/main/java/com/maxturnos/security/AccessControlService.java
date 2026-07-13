@@ -47,6 +47,10 @@ public class AccessControlService {
             return true;
         }
 
+        if ("POST".equals(method) && "/api/pagos/preferencia".equals(path)) {
+            return true;
+        }
+
         return false;
     }
 

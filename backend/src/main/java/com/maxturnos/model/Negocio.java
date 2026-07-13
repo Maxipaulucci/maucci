@@ -36,6 +36,9 @@ public class Negocio {
     private List<String> categorias; // Lista de categorías disponibles para servicios
     
     private Boolean activo = true;
+
+    /** Solo flag público: el negocio tiene Access Token de Mercado Pago configurado. */
+    private Boolean mercadoPagoHabilitado = false;
     
     private LocalDateTime fechaCreacion = LocalDateTime.now();
     
