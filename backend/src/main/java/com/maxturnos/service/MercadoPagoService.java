@@ -5,11 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.maxturnos.model.NegocioData;
+import com.maxturnos.model.Usuario;
+import com.maxturnos.repository.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -17,29 +20,54 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class MercadoPagoService {
 
     private static final Logger log = LoggerFactory.getLogger(MercadoPagoService.class);
     private static final String PREFERENCES_URL = "https://api.mercadopago.com/checkout/preferences";
+    private static final String PAYMENTS_URL = "https://api.mercadopago.com/v1/payments/";
+    public static final String REF_SEPARATOR = "::";
 
     private final NegocioDataService negocioDataService;
+    private final UsuarioRepository usuarioRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final String frontendBaseUrl;
+    private final String backendBaseUrl;
 
     public MercadoPagoService(
             NegocioDataService negocioDataService,
+            UsuarioRepository usuarioRepository,
             ObjectMapper objectMapper,
-            @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl) {
+            @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl,
+            @Value("${app.backend-base-url:http://localhost:5000}") String backendBaseUrl) {
         this.negocioDataService = negocioDataService;
+        this.usuarioRepository = usuarioRepository;
         this.objectMapper = objectMapper;
-        this.frontendBaseUrl = frontendBaseUrl.endsWith("/")
-            ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1)
-            : frontendBaseUrl;
+        this.frontendBaseUrl = trimTrailingSlash(frontendBaseUrl);
+        this.backendBaseUrl = trimTrailingSlash(backendBaseUrl);
         this.restTemplate = new RestTemplate();
+    }
+
+    public static String buildExternalReference(String establecimiento, String reservaId) {
+        return establecimiento.toLowerCase().trim() + REF_SEPARATOR + reservaId.trim();
+    }
+
+    public static String[] parseExternalReference(String externalReference) {
+        if (externalReference == null || !externalReference.contains(REF_SEPARATOR)) {
+            return null;
+        }
+        int idx = externalReference.indexOf(REF_SEPARATOR);
+        String establecimiento = externalReference.substring(0, idx).trim();
+        String reservaId = externalReference.substring(idx + REF_SEPARATOR.length()).trim();
+        if (establecimiento.isEmpty() || reservaId.isEmpty()) {
+            return null;
+        }
+        return new String[]{establecimiento, reservaId};
     }
 
     public Map<String, Object> crearPreferencia(
@@ -54,7 +82,23 @@ public class MercadoPagoService {
                 "Este negocio aún no configuró Mercado Pago"
             ));
 
-        NegocioData.ServicioData servicio = negocioDataService.findServicioById(codigo, servicioId)
+        Integer resolvedServicioId = servicioId;
+        if (resolvedServicioId == null && reservaId != null && !reservaId.isBlank()) {
+            NegocioData.ReservaData reserva = negocioDataService.getReservas(codigo).stream()
+                .filter(r -> reservaId.trim().equals(r.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Reserva no encontrada"));
+            if (reserva.getServicio() == null || reserva.getServicio().getId() == null) {
+                throw new IllegalArgumentException("La reserva no tiene un servicio asociado");
+            }
+            resolvedServicioId = reserva.getServicio().getId();
+        }
+
+        if (resolvedServicioId == null) {
+            throw new IllegalArgumentException("El id del servicio es requerido");
+        }
+
+        NegocioData.ServicioData servicio = negocioDataService.findServicioById(codigo, resolvedServicioId)
             .orElseThrow(() -> new IllegalArgumentException("Servicio no encontrado"));
 
         double unitPrice = parsePrecio(servicio.getPrecio());
@@ -84,8 +128,10 @@ public class MercadoPagoService {
         body.put("auto_return", "approved");
 
         if (reservaId != null && !reservaId.isBlank()) {
-            body.put("external_reference", reservaId.trim());
+            body.put("external_reference", buildExternalReference(codigo, reservaId));
         }
+
+        body.put("notification_url", backendBaseUrl + "/api/pagos/webhook");
 
         if (payerEmail != null && !payerEmail.isBlank()) {
             ObjectNode payer = body.putObject("payer");
@@ -129,6 +175,86 @@ public class MercadoPagoService {
         }
     }
 
+    public void marcarComoPagado(String establecimiento, String reservaId) {
+        String codigo = establecimiento.toLowerCase().trim();
+        String id = reservaId.trim();
+
+        Optional<NegocioData.ReservaData> reservaOpt = negocioDataService.getReservas(codigo).stream()
+            .filter(r -> id.equals(r.getId()))
+            .findFirst();
+
+        if (reservaOpt.isEmpty()) {
+            throw new IllegalArgumentException("Reserva no encontrada");
+        }
+
+        NegocioData.ReservaData reserva = reservaOpt.get();
+        if (Boolean.TRUE.equals(reserva.getPagado())) {
+            return;
+        }
+
+        negocioDataService.updateReserva(codigo, id, "pagado", true);
+
+        String email = reserva.getUsuarioEmail();
+        if (email != null && !email.isBlank()) {
+            usuarioRepository.findByEmail(email.toLowerCase().trim()).ifPresent(usuario -> {
+                List<Usuario.ReservaEnHistorial> historial = usuario.getHistorialReservas();
+                if (historial == null) {
+                    return;
+                }
+                boolean changed = false;
+                for (Usuario.ReservaEnHistorial item : historial) {
+                    if (id.equals(item.getId())) {
+                        item.setPagado(true);
+                        changed = true;
+                        break;
+                    }
+                }
+                if (changed) {
+                    usuarioRepository.save(usuario);
+                }
+            });
+        }
+        log.info("Pago confirmado para reserva {} en {}", id, codigo);
+    }
+
+    public void consultarPagoYMarcar(String establecimiento, String paymentId) {
+        String codigo = establecimiento.toLowerCase().trim();
+        String accessToken = negocioDataService.findMercadoPagoAccessToken(codigo)
+            .orElseThrow(() -> new IllegalStateException("Mercado Pago no configurado"));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                PAYMENTS_URL + paymentId,
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class
+            );
+            JsonNode root = objectMapper.readTree(response.getBody());
+            String status = textOrNull(root, "status");
+            if (!"approved".equalsIgnoreCase(status)) {
+                log.info("Pago MP {} estado={}, no se marca como pagado", paymentId, status);
+                return;
+            }
+            String externalRef = textOrNull(root, "external_reference");
+            String[] parts = parseExternalReference(externalRef);
+            if (parts == null) {
+                log.warn("Pago MP {} sin external_reference válida", paymentId);
+                return;
+            }
+            marcarComoPagado(parts[0], parts[1]);
+        } catch (HttpStatusCodeException e) {
+            log.error("Error al consultar pago MP {}: {}", paymentId, e.getResponseBodyAsString());
+            throw new IllegalStateException("No se pudo verificar el pago en Mercado Pago");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error al procesar pago MP {}: {}", paymentId, e.getMessage(), e);
+            throw new IllegalStateException("Error al procesar el pago");
+        }
+    }
+
     public static double parsePrecio(String precio) {
         if (precio == null || precio.trim().isEmpty()) {
             throw new IllegalArgumentException("Precio vacío");
@@ -144,6 +270,13 @@ public class MercadoPagoService {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Precio inválido: " + precio);
         }
+    }
+
+    private static String trimTrailingSlash(String url) {
+        if (url == null || url.isBlank()) {
+            return url;
+        }
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 
     private static String textOrNull(JsonNode root, String field) {

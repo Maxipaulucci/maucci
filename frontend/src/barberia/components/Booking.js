@@ -47,6 +47,7 @@ const Booking = () => {
   const [isLoadingDias, setIsLoadingDias] = useState(true); // true hasta que se cargue la config (días abiertos + cancelados)
   const [isPaying, setIsPaying] = useState(false);
   const [pagoError, setPagoError] = useState('');
+  const [createdReservaId, setCreatedReservaId] = useState(null);
 
   // Al confirmar o cambiar de paso, subir al inicio
   useEffect(() => {
@@ -337,7 +338,9 @@ const Booking = () => {
         usuarioEmail: user.email
       };
 
-      await reservasService.crearReserva(reservaData);
+      const res = await reservasService.crearReserva(reservaData);
+      const creada = res.data ?? res;
+      setCreatedReservaId(creada?.id || null);
       setIsSubmitted(true);
     } catch (err) {
       console.error('Error al crear reserva:', err);
@@ -355,6 +358,7 @@ const Booking = () => {
     setIsSubmitted(false);
     setPagoError('');
     setIsPaying(false);
+    setCreatedReservaId(null);
   };
 
   const handlePagarMercadoPago = async () => {
@@ -365,6 +369,7 @@ const Booking = () => {
       const response = await pagosService.crearPreferencia({
         establecimiento,
         servicioId: selectedService.id,
+        reservaId: createdReservaId || undefined,
         payerEmail: user?.email
       });
       const data = response.data ?? response;

@@ -4,16 +4,11 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class CrearPreferenciaRequest {
+public class ConfirmarPagoRequest {
 
     @NotBlank(message = "El establecimiento es requerido")
     private String establecimiento;
 
-    /** Opcional si viene reservaId (se resuelve desde la reserva) */
-    private Integer servicioId;
-
-    /** Opcional: referencia externa en Mercado Pago */
+    @NotBlank(message = "El id de la reserva es requerido")
     private String reservaId;
-
-    private String payerEmail;
 }

@@ -29,6 +29,8 @@ public class Usuario {
         private String hora;
         private String servicioNombre;
         private String profesionalNombre;
+        /** true = pagó con Mercado Pago; false/null = pendiente (paga en el local) */
+        private Boolean pagado = false;
     }
     
     @Id

@@ -51,6 +51,14 @@ public class AccessControlService {
             return true;
         }
 
+        if ("POST".equals(method) && "/api/pagos/confirmar".equals(path)) {
+            return true;
+        }
+
+        if ("POST".equals(method) && "/api/pagos/webhook".equals(path)) {
+            return true;
+        }
+
         return false;
     }
 

@@ -247,6 +247,13 @@ export const pagosService = {
       method: 'POST',
       body: JSON.stringify({ establecimiento, servicioId, reservaId, payerEmail })
     });
+  },
+
+  confirmarPago: async ({ establecimiento, reservaId, paymentId, externalReference, status }) => {
+    return await fetchAPI('/pagos/confirmar', {
+      method: 'POST',
+      body: JSON.stringify({ establecimiento, reservaId, paymentId, externalReference, status })
+    });
   }
 };
 

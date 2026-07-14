@@ -44,6 +44,9 @@ public class Reserva {
     private String usuarioNombre; // Nombre del usuario que hizo la reserva
     
     private String usuarioApellido; // Apellido del usuario que hizo la reserva
+
+    /** true si el cliente pagó con Mercado Pago */
+    private Boolean pagado = false;
     
     private LocalDateTime fechaCreacion = LocalDateTime.now();
     

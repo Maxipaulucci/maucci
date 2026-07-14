@@ -121,6 +121,7 @@ public class NegocioData {
         private String usuarioEmail;
         private String usuarioNombre;
         private String usuarioApellido;
+        private Boolean pagado = false;
         private LocalDateTime fechaCreacion = LocalDateTime.now();
     }
     

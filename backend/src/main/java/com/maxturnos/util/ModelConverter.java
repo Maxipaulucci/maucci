@@ -24,6 +24,7 @@ public class ModelConverter {
         data.setUsuarioEmail(reserva.getUsuarioEmail());
         data.setUsuarioNombre(reserva.getUsuarioNombre());
         data.setUsuarioApellido(reserva.getUsuarioApellido());
+        data.setPagado(reserva.getPagado() != null ? reserva.getPagado() : false);
         data.setFechaCreacion(reserva.getFechaCreacion());
         
         if (reserva.getServicio() != null) {
@@ -48,6 +49,7 @@ public class ModelConverter {
         reserva.setUsuarioEmail(data.getUsuarioEmail());
         reserva.setUsuarioNombre(data.getUsuarioNombre());
         reserva.setUsuarioApellido(data.getUsuarioApellido());
+        reserva.setPagado(data.getPagado() != null ? data.getPagado() : false);
         reserva.setFechaCreacion(data.getFechaCreacion());
         
         if (data.getServicio() != null) {

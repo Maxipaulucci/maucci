@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaLock, FaSignOutAlt, FaEye, FaEyeSlash, FaTrash, FaHistory } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
-import { authService } from '../../services/api';
+import { authService, pagosService } from '../../services/api';
 import './UserProfileModal.css';
 
 const formatFecha = (dateStr) => {
@@ -14,6 +14,15 @@ const formatFecha = (dateStr) => {
   } catch {
     return dateStr;
   }
+};
+
+/** true si la fecha del turno aún no pasó (mismo día o futuro) */
+const esTurnoVigenteParaPago = (fecha) => {
+  if (!fecha) return false;
+  const d = new Date(fecha);
+  if (Number.isNaN(d.getTime())) return false;
+  const finDelDia = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+  return finDelDia.getTime() >= Date.now();
 };
 
 const UserProfileModal = ({ isOpen, onClose }) => {
@@ -36,6 +45,7 @@ const UserProfileModal = ({ isOpen, onClose }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [payingReservaId, setPayingReservaId] = useState(null);
 
   // Resetear estado cuando el modal se abre o cierra
   useEffect(() => {
@@ -64,6 +74,32 @@ const UserProfileModal = ({ isOpen, onClose }) => {
       setHistorial([]);
     } finally {
       setLoadingHistorial(false);
+    }
+  };
+
+  const handlePagarTurno = async (item) => {
+    if (!item?.id || !item?.establecimiento) {
+      setError('No se puede iniciar el pago de este turno');
+      return;
+    }
+    setError('');
+    setPayingReservaId(item.id);
+    try {
+      const response = await pagosService.crearPreferencia({
+        establecimiento: item.establecimiento,
+        reservaId: item.id,
+        payerEmail: user?.email
+      });
+      const data = response.data ?? response;
+      const initPoint = data.initPoint;
+      if (!initPoint) {
+        throw new Error('No se recibió la URL de Mercado Pago');
+      }
+      window.location.href = initPoint;
+    } catch (err) {
+      console.error('Error al iniciar pago desde historial:', err);
+      setError(err.message || 'No se pudo iniciar el pago. Intentá de nuevo.');
+      setPayingReservaId(null);
     }
   };
 
@@ -243,14 +279,40 @@ const UserProfileModal = ({ isOpen, onClose }) => {
                 <p className="user-historial-empty">No tenés turnos registrados.</p>
               ) : (
                 <ul className="user-historial-list">
-                  {historial.map((item) => (
-                    <li key={item.id || `${item.establecimiento}-${item.fecha}-${item.hora}`} className="user-historial-item">
-                      <span className="user-historial-establecimiento">{item.establecimiento || '—'}</span>
-                      <span className="user-historial-fecha">{formatFecha(item.fecha)} {item.hora || ''}</span>
-                      <span className="user-historial-servicio">{item.servicioNombre || '—'}</span>
-                      <span className="user-historial-profesional">{item.profesionalNombre || '—'}</span>
-                    </li>
-                  ))}
+                  {historial.map((item) => {
+                    const mostrarPago = esTurnoVigenteParaPago(item.fecha);
+                    const pagado = item.pagado === true;
+                    return (
+                      <li key={item.id || `${item.establecimiento}-${item.fecha}-${item.hora}`} className="user-historial-item">
+                        <span className="user-historial-establecimiento">{item.establecimiento || '—'}</span>
+                        <span className="user-historial-fecha">{formatFecha(item.fecha)} {item.hora || ''}</span>
+                        <span className="user-historial-servicio">{item.servicioNombre || '—'}</span>
+                        <span className="user-historial-profesional">{item.profesionalNombre || '—'}</span>
+                        {mostrarPago && (
+                          <>
+                            <span className={`user-historial-pago ${pagado ? 'confirmado' : 'pendiente'}`}>
+                              {pagado ? 'Pago confirmado' : 'Pago pendiente'}
+                            </span>
+                            {!pagado && (
+                              <button
+                                type="button"
+                                className="btn-mercadopago user-historial-pagar-btn"
+                                onClick={() => handlePagarTurno(item)}
+                                disabled={payingReservaId === item.id}
+                              >
+                                <img
+                                  src="/assets/img/logos_genericos/mercadoPago.png"
+                                  alt=""
+                                  className="btn-mercadopago-logo"
+                                />
+                                <span>{payingReservaId === item.id ? 'Redirigiendo...' : 'Pagar'}</span>
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
               <button

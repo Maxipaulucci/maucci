@@ -129,6 +129,7 @@ public class ReservaController {
                     .body(ApiResponse.error("Duración del servicio inválida"));
             }
             reserva.setDuracionMinutos(duracionMinutos);
+            reserva.setPagado(false);
             
             Reserva nuevaReserva = reservaService.crearReserva(reserva);
 
@@ -141,6 +142,7 @@ public class ReservaController {
                 item.setHora(nuevaReserva.getHora());
                 item.setServicioNombre(nuevaReserva.getServicio() != null ? nuevaReserva.getServicio().getName() : null);
                 item.setProfesionalNombre(nuevaReserva.getProfesional() != null ? nuevaReserva.getProfesional().getName() : null);
+                item.setPagado(false);
                 if (usuario.getHistorialReservas() == null) {
                     usuario.setHistorialReservas(new ArrayList<>());
                 }

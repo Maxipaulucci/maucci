@@ -144,6 +144,58 @@
   text-align: right;
 }
 
+.user-historial-pago {
+  grid-column: 1 / -1;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-top: 0.15rem;
+}
+
+.user-historial-pago.confirmado {
+  color: #15803d;
+}
+
+.user-historial-pago.pendiente {
+  color: #dc2626;
+}
+
+.user-historial-pagar-btn {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  background-color: #ffe600;
+  border: 1px solid #e6cf00;
+  color: #1a1a1a;
+  font-weight: 700;
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 0.35rem;
+  min-height: 2.6rem;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.user-historial-pagar-btn .btn-mercadopago-logo {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  display: block;
+  object-fit: contain;
+}
+
+.user-historial-pagar-btn:hover:not(:disabled) {
+  background-color: #f5dc00;
+}
+
+.user-historial-pagar-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .user-historial-volver {
   margin-top: auto;
 }
