@@ -29,7 +29,8 @@ public class PagoController {
                 request.getEstablecimiento(),
                 request.getServicioId(),
                 request.getReservaId(),
-                request.getPayerEmail()
+                request.getPayerEmail(),
+                request.getFrontBaseUrl()
             );
             return ResponseEntity.ok(ApiResponse.success("Preferencia creada", data));
         } catch (IllegalArgumentException e) {

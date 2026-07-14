@@ -74,20 +74,20 @@ public class MercadoPagoService {
             String establecimiento,
             Integer servicioId,
             String reservaId,
-            String payerEmail) {
+            String payerEmail,
+            String frontBaseUrlOverride) {
 
         String codigo = establecimiento.toLowerCase().trim();
         String accessToken = negocioDataService.findMercadoPagoAccessToken(codigo)
-            .orElseThrow(() -> new IllegalStateException(
-                "Este negocio aún no configuró Mercado Pago"
-            ));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Este negocio aún no configuró Mercado Pago"));
 
         Integer resolvedServicioId = servicioId;
         if (resolvedServicioId == null && reservaId != null && !reservaId.isBlank()) {
             NegocioData.ReservaData reserva = negocioDataService.getReservas(codigo).stream()
-                .filter(r -> reservaId.trim().equals(r.getId()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Reserva no encontrada"));
+                    .filter(r -> reservaId.trim().equals(r.getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Reserva no encontrada"));
             if (reserva.getServicio() == null || reserva.getServicio().getId() == null) {
                 throw new IllegalArgumentException("La reserva no tiene un servicio asociado");
             }
@@ -99,7 +99,7 @@ public class MercadoPagoService {
         }
 
         NegocioData.ServicioData servicio = negocioDataService.findServicioById(codigo, resolvedServicioId)
-            .orElseThrow(() -> new IllegalArgumentException("Servicio no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Servicio no encontrado"));
 
         double unitPrice = parsePrecio(servicio.getPrecio());
         if (unitPrice <= 0) {
@@ -107,10 +107,11 @@ public class MercadoPagoService {
         }
 
         String title = servicio.getNombre() != null && !servicio.getNombre().isBlank()
-            ? servicio.getNombre().trim()
-            : "Servicio";
+                ? servicio.getNombre().trim()
+                : "Servicio";
 
-        String localBase = frontendBaseUrl + "/local/" + codigo;
+        String resolvedFront = resolveFrontBaseUrl(frontBaseUrlOverride);
+        String localBase = resolvedFront + "/local/" + codigo;
         String backUrl = localBase + "/servicios";
 
         ObjectNode body = objectMapper.createObjectNode();
@@ -131,7 +132,9 @@ public class MercadoPagoService {
             body.put("external_reference", buildExternalReference(codigo, reservaId));
         }
 
-        body.put("notification_url", backendBaseUrl + "/api/pagos/webhook");
+        if (isPublicHttpUrl(backendBaseUrl)) {
+            body.put("notification_url", backendBaseUrl + "/api/pagos/webhook");
+        }
 
         if (payerEmail != null && !payerEmail.isBlank()) {
             ObjectNode payer = body.putObject("payer");
@@ -144,10 +147,9 @@ public class MercadoPagoService {
 
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(
-                PREFERENCES_URL,
-                new HttpEntity<>(body.toString(), headers),
-                String.class
-            );
+                    PREFERENCES_URL,
+                    new HttpEntity<>(body.toString(), headers),
+                    String.class);
             JsonNode root = objectMapper.readTree(response.getBody());
             String initPoint = textOrNull(root, "init_point");
             String sandboxInitPoint = textOrNull(root, "sandbox_init_point");
@@ -165,8 +167,17 @@ public class MercadoPagoService {
             result.put("title", title);
             return result;
         } catch (HttpStatusCodeException e) {
-            log.error("Error Mercado Pago al crear preferencia (HTTP {}): {}", e.getStatusCode().value(), e.getResponseBodyAsString());
-            throw new IllegalStateException("No se pudo crear el pago en Mercado Pago. Verificá el Access Token del negocio.");
+            String mpBody = e.getResponseBodyAsString();
+            log.error("Error Mercado Pago al crear preferencia (HTTP {}): {}", e.getStatusCode().value(), mpBody);
+            String detail = extractMpErrorMessage(mpBody);
+            int code = e.getStatusCode().value();
+            if (code == 401 || code == 403) {
+                throw new IllegalStateException(
+                        "Access Token de Mercado Pago inválido o sin permisos. Revisá el token en el panel Pagos.");
+            }
+            throw new IllegalStateException(
+                    "No se pudo crear el pago en Mercado Pago"
+                            + (detail != null ? ": " + detail : ". Verificá el Access Token y las URLs configuradas."));
         } catch (IllegalStateException | IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
@@ -180,8 +191,8 @@ public class MercadoPagoService {
         String id = reservaId.trim();
 
         Optional<NegocioData.ReservaData> reservaOpt = negocioDataService.getReservas(codigo).stream()
-            .filter(r -> id.equals(r.getId()))
-            .findFirst();
+                .filter(r -> id.equals(r.getId()))
+                .findFirst();
 
         if (reservaOpt.isEmpty()) {
             throw new IllegalArgumentException("Reserva no encontrada");
@@ -220,17 +231,16 @@ public class MercadoPagoService {
     public void consultarPagoYMarcar(String establecimiento, String paymentId) {
         String codigo = establecimiento.toLowerCase().trim();
         String accessToken = negocioDataService.findMercadoPagoAccessToken(codigo)
-            .orElseThrow(() -> new IllegalStateException("Mercado Pago no configurado"));
+                .orElseThrow(() -> new IllegalStateException("Mercado Pago no configurado"));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         try {
             ResponseEntity<String> response = restTemplate.exchange(
-                PAYMENTS_URL + paymentId,
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                String.class
-            );
+                    PAYMENTS_URL + paymentId,
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    String.class);
             JsonNode root = objectMapper.readTree(response.getBody());
             String status = textOrNull(root, "status");
             if (!"approved".equalsIgnoreCase(status)) {
@@ -270,6 +280,61 @@ public class MercadoPagoService {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Precio inválido: " + precio);
         }
+    }
+
+    private String resolveFrontBaseUrl(String override) {
+        if (override != null && !override.isBlank()) {
+            String cleaned = trimTrailingSlash(override.trim());
+            if (isAllowedFrontUrl(cleaned)) {
+                return cleaned;
+            }
+            log.warn("frontBaseUrl ignorada (no permitida): {}", override);
+        }
+        return frontendBaseUrl;
+    }
+
+    private static boolean isAllowedFrontUrl(String url) {
+        if (url == null) {
+            return false;
+        }
+        String lower = url.toLowerCase();
+        return lower.startsWith("https://")
+                || lower.startsWith("http://localhost")
+                || lower.startsWith("http://127.0.0.1");
+    }
+
+    private static boolean isPublicHttpUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        String lower = url.toLowerCase();
+        return lower.startsWith("https://")
+                && !lower.contains("localhost")
+                && !lower.contains("127.0.0.1");
+    }
+
+    private String extractMpErrorMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            if (root.has("message") && !root.get("message").asText().isBlank()) {
+                return root.get("message").asText();
+            }
+            if (root.has("cause") && root.get("cause").isArray() && root.get("cause").size() > 0) {
+                JsonNode first = root.get("cause").get(0);
+                if (first.has("description")) {
+                    return first.get("description").asText();
+                }
+                if (first.has("message")) {
+                    return first.get("message").asText();
+                }
+            }
+        } catch (Exception ignored) {
+            // ignore
+        }
+        return null;
     }
 
     private static String trimTrailingSlash(String url) {

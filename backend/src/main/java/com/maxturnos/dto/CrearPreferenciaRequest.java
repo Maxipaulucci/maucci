@@ -16,4 +16,10 @@ public class CrearPreferenciaRequest {
     private String reservaId;
 
     private String payerEmail;
+
+    /**
+     * Origen del frontend (ej. https://maucci.net). Se usa para back_urls.
+     * Si no viene, se usa app.frontend-base-url.
+     */
+    private String frontBaseUrl;
 }

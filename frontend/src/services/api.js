@@ -245,7 +245,13 @@ export const pagosService = {
   crearPreferencia: async ({ establecimiento, servicioId, reservaId, payerEmail }) => {
     return await fetchAPI('/pagos/preferencia', {
       method: 'POST',
-      body: JSON.stringify({ establecimiento, servicioId, reservaId, payerEmail })
+      body: JSON.stringify({
+        establecimiento,
+        servicioId,
+        reservaId,
+        payerEmail,
+        frontBaseUrl: typeof window !== 'undefined' ? window.location.origin : undefined
+      })
     });
   },
 
