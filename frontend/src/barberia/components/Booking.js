@@ -465,6 +465,14 @@ const Booking = () => {
                 <strong>Monto:</strong> {selectedService.price}
               </div>
             )}
+            <div className="detail-item">
+              <strong>Nota:</strong>{' '}
+              {customerInfo.notes?.trim() ? (
+                customerInfo.notes.trim()
+              ) : (
+                <em>Vacía</em>
+              )}
+            </div>
           </div>
           {pagoError && <div className="booking-pago-error">{pagoError}</div>}
           {pagoConfirmado && (

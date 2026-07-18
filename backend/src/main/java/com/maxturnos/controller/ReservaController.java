@@ -234,7 +234,7 @@ public class ReservaController {
                             "- Duración: %s\n" +
                             "%s\n\n" +
                             "Saludos cordiales,\n" +
-                            "Equipo Maxturnos",
+                            "Maucci",
                             reservaFinal.getEstablecimiento(),
                             fechaFormateada,
                             reservaFinal.getHora(),
