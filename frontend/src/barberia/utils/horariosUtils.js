@@ -169,3 +169,81 @@ export function obtenerLineasHorarios(negocio) {
 
   return ['Consultar horarios'];
 }
+
+function horaAMinutos(hora) {
+  const [h, m] = String(hora).split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+/**
+ * Estado de apertura según el día actual y bloquesHorario del panel.
+ * Si aún no abrió: "Abre a las HH:MM". Si ya pasó el cierre: "Cerrado por hoy".
+ */
+export function obtenerEstadoApertura(negocio, fechaRef = new Date()) {
+  const diaHoy = fechaRef.getDay();
+  const horaActualMinutos = fechaRef.getHours() * 60 + fechaRef.getMinutes();
+
+  let inicio = null;
+  let fin = null;
+
+  const bloques = negocio?.bloquesHorario;
+  if (Array.isArray(bloques) && bloques.length > 0) {
+    const bloqueHoy = bloques.find(
+      (b) => Array.isArray(b.dias) && b.dias.map(Number).includes(diaHoy)
+    );
+    if (bloqueHoy) {
+      inicio = normalizarHora(bloqueHoy.inicio);
+      fin = normalizarHora(bloqueHoy.fin);
+    }
+  } else {
+    const dias = Array.isArray(negocio?.diasDisponibles) ? negocio.diasDisponibles : null;
+    if (dias && dias.length > 0 && !dias.map(Number).includes(diaHoy)) {
+      return {
+        cerrado: true,
+        horaCierre: null,
+        horaApertura: null,
+        mensaje: 'Cerrado: por hoy'
+      };
+    }
+    inicio = normalizarHora(negocio?.horarios?.inicio || '09:00');
+    fin = normalizarHora(negocio?.horarios?.fin || '20:00');
+  }
+
+  if (!inicio || !fin) {
+    return {
+      cerrado: true,
+      horaCierre: null,
+      horaApertura: null,
+      mensaje: 'Cerrado: por hoy'
+    };
+  }
+
+  const inicioMin = horaAMinutos(inicio);
+  const finMin = horaAMinutos(fin);
+
+  if (horaActualMinutos < inicioMin) {
+    return {
+      cerrado: true,
+      horaCierre: fin,
+      horaApertura: inicio,
+      mensaje: `Cerrado: abre a las ${inicio}`
+    };
+  }
+
+  if (horaActualMinutos >= finMin) {
+    return {
+      cerrado: true,
+      horaCierre: fin,
+      horaApertura: inicio,
+      mensaje: 'Cerrado: por hoy'
+    };
+  }
+
+  return {
+    cerrado: false,
+    horaCierre: fin,
+    horaApertura: inicio,
+    mensaje: `Abierto hasta las ${fin}`
+  };
+}
+
