@@ -2,17 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaFacebook, FaInstagram, FaTwitter } from 'react-icons/fa';
 import { businessInfo } from '../data/sampleData';
-import { servicioService } from '../../services/api';
+import { servicioService, negociosService } from '../../services/api';
 import { barberiaCache } from '../data/barberiaCache';
 import { useEstablecimiento } from '../../context/EstablecimientoContext';
+import { obtenerLineasHorarios } from '../utils/horariosUtils';
 import './Footer.css';
 
 const Footer = () => {
   const { codigo: establecimiento, to } = useEstablecimiento();
   const currentYear = new Date().getFullYear();
   const [categorias, setCategorias] = useState([]);
+  const [lineasHorarios, setLineasHorarios] = useState([]);
 
-  // Usar las mismas categorías que la sección Servicios: se obtienen de los servicios reales (no de negocio.categorias que puede estar en caché o desactualizado)
   useEffect(() => {
     const extraerCategorias = (serviciosRaw) => {
       if (!Array.isArray(serviciosRaw)) return [];
@@ -39,11 +40,49 @@ const Footer = () => {
     cargarCategorias();
   }, [establecimiento]);
 
+  useEffect(() => {
+    const aplicar = (negocio) => {
+      if (negocio) {
+        setLineasHorarios(obtenerLineasHorarios(negocio));
+      }
+    };
+
+    const cachedNegocio = barberiaCache.getNegocio(establecimiento);
+    if (cachedNegocio) aplicar(cachedNegocio);
+
+    const cargarHorarios = async () => {
+      try {
+        const res = await negociosService.obtenerNegocio(establecimiento);
+        const negocio = res?.data ?? res;
+        if (negocio?.codigo) {
+          barberiaCache.setNegocio(establecimiento, negocio);
+          aplicar(negocio);
+        }
+      } catch (err) {
+        if (!cachedNegocio) {
+          setLineasHorarios(['Horarios no disponibles']);
+        }
+        console.error('Error al cargar horarios para el footer:', err);
+      }
+    };
+    cargarHorarios();
+  }, [establecimiento]);
+
+  const parsearLineaHorario = (linea) => {
+    const sep = linea.indexOf(': ');
+    if (sep === -1) {
+      return { dia: linea, tiempo: '' };
+    }
+    return {
+      dia: linea.slice(0, sep),
+      tiempo: linea.slice(sep + 2)
+    };
+  };
+
   return (
     <footer className="footer barberia-footer">
       <div className="container">
         <div className="footer-content">
-          {/* Información de la empresa */}
           <div className="footer-section footer-section-main">
             <h3 className="footer-title">{businessInfo.name}</h3>
             <p className="footer-description">
@@ -62,35 +101,33 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Horarios */}
           <div className="footer-section">
             <h4 className="footer-subtitle">Horarios</h4>
             <div className="hours-info">
-              <div className="hours-item">
-                <span className="hours-icon">🕐</span>
-                <div className="hours-details">
-                  <span className="day">Lunes a Viernes</span>
-                  <span className="time">{businessInfo.hours.tuesday}</span>
+              {lineasHorarios.length === 0 ? (
+                <div className="hours-item">
+                  <span className="hours-icon">🕐</span>
+                  <div className="hours-details">
+                    <span className="day">Cargando...</span>
+                  </div>
                 </div>
-              </div>
-              <div className="hours-item">
-                <span className="hours-icon">🕐</span>
-                <div className="hours-details">
-                  <span className="day">Sábado</span>
-                  <span className="time">{businessInfo.hours.saturday}</span>
-                </div>
-              </div>
-              <div className="hours-item">
-                <span className="hours-icon">🕐</span>
-                <div className="hours-details">
-                  <span className="day">Domingo</span>
-                  <span className="time">{businessInfo.hours.sunday}</span>
-                </div>
-              </div>
+              ) : (
+                lineasHorarios.map((linea) => {
+                  const { dia, tiempo } = parsearLineaHorario(linea);
+                  return (
+                    <div key={linea} className="hours-item">
+                      <span className="hours-icon">🕐</span>
+                      <div className="hours-details">
+                        <span className="day">{dia}</span>
+                        {tiempo ? <span className="time">{tiempo}</span> : null}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
-          {/* Servicios: categorías del negocio (se actualizan desde el panel). Enlaces llevan a Servicios, arriba, con filtro aplicado. */}
           <div className="footer-section">
             <h4 className="footer-subtitle">Servicios</h4>
             <ul className="footer-links">
@@ -117,7 +154,6 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Información de contacto */}
           <div className="footer-section">
             <h4 className="footer-subtitle">Contacto</h4>
             <div className="contact-info">
@@ -137,10 +173,8 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Línea divisoria */}
         <div className="footer-divider"></div>
 
-        {/* Footer inferior */}
         <div className="footer-bottom">
           <div className="footer-bottom-content">
             <p className="copyright">
@@ -154,4 +188,3 @@ const Footer = () => {
 };
 
 export default Footer;
-
