@@ -3,6 +3,7 @@ package com.maxturnos.controller;
 import com.maxturnos.dto.ApiResponse;
 import com.maxturnos.dto.CrearPreferenciaRequest;
 import com.maxturnos.service.MercadoPagoService;
+import com.maxturnos.service.TransferenciaPagoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +17,44 @@ import java.util.Map;
 public class PagoController {
 
     private final MercadoPagoService mercadoPagoService;
+    private final TransferenciaPagoService transferenciaPagoService;
 
-    public PagoController(MercadoPagoService mercadoPagoService) {
+    public PagoController(MercadoPagoService mercadoPagoService,
+                          TransferenciaPagoService transferenciaPagoService) {
         this.mercadoPagoService = mercadoPagoService;
+        this.transferenciaPagoService = transferenciaPagoService;
+    }
+
+    @PostMapping("/transferencia")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> confirmarTransferencia(
+            @RequestBody Map<String, String> body) {
+        try {
+            String establecimiento = body != null ? body.get("establecimiento") : null;
+            String reservaId = body != null ? body.get("reservaId") : null;
+            String comprobanteBase64 = body != null ? body.get("comprobanteBase64") : null;
+            String comprobanteNombre = body != null ? body.get("comprobanteNombre") : null;
+            String comprobanteContentType = body != null ? body.get("comprobanteContentType") : null;
+
+            if (establecimiento == null || establecimiento.isBlank()
+                || reservaId == null || reservaId.isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Datos de pago incompletos"));
+            }
+
+            transferenciaPagoService.confirmarPagoConComprobante(
+                establecimiento, reservaId, comprobanteBase64, comprobanteNombre, comprobanteContentType
+            );
+            return ResponseEntity.ok(ApiResponse.success("Pago confirmado", Map.of("pagado", true)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al confirmar el pago por transferencia"));
+        }
     }
 
     @PostMapping("/preferencia")

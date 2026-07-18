@@ -37,10 +37,28 @@ public class Negocio {
     
     private Boolean activo = true;
 
-    /** Solo flag público: el negocio tiene Access Token de Mercado Pago configurado. */
+    /** Método de pago activo: NINGUNO | TRANSFERENCIA | MERCADO_PAGO. */
+    private String metodoPago = "NINGUNO";
+
+    /** true si el método activo está configurado y se puede pagar en la web. */
+    private Boolean pagoHabilitado = false;
+
+    /** Solo flag público: Mercado Pago activo y con Access Token. */
     private Boolean mercadoPagoHabilitado = false;
+
+    /** Datos públicos de transferencia (solo si metodoPago = TRANSFERENCIA). */
+    private PagoTransferenciaInfo pagoTransferencia;
     
     private LocalDateTime fechaCreacion = LocalDateTime.now();
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PagoTransferenciaInfo {
+        private String alias;
+        private String cvuCbu;
+        private String titular;
+    }
     
     @Data
     @NoArgsConstructor

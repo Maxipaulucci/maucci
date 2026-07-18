@@ -1,0 +1,120 @@
+.transfer-pago-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.transfer-pago-modal {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.35rem 1.25rem 1.15rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+
+.transfer-pago-modal h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.2rem;
+  color: #111;
+}
+
+.transfer-pago-hint {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.45;
+}
+
+.transfer-pago-datos {
+  margin: 0 0 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.transfer-pago-datos dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6b7280;
+  margin-bottom: 0.2rem;
+}
+
+.transfer-pago-datos dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+  word-break: break-all;
+}
+
+.transfer-pago-copy {
+  flex-shrink: 0;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: #374151;
+}
+
+.transfer-pago-copy:hover {
+  background: #f3f4f6;
+}
+
+.transfer-pago-file-input {
+  display: none;
+}
+
+.transfer-pago-filename {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: #15803d;
+}
+
+.transfer-pago-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.transfer-pago-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.transfer-pago-adjuntar {
+  width: 100%;
+}
+
+.transfer-pago-actions .btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.transfer-pago-cancel {
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 0.9rem;
+  padding: 0.35rem;
+  cursor: pointer;
+}
+
+.transfer-pago-cancel:hover:not(:disabled) {
+  color: #111;
+}

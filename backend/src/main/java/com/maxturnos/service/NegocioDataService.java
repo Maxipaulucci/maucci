@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -369,9 +371,9 @@ public class NegocioDataService {
                     : Arrays.asList(1, 2, 3, 4, 5, 6));
                 String orden = data.getOrdenResenas();
                 negocio.setOrdenResenas(orden != null && !orden.isEmpty() ? orden : "reciente-antigua");
-                negocio.setMercadoPagoHabilitado(isMercadoPagoConfigurado(data));
+                aplicarConfigPagoPublica(negocio, data);
             } else {
-                negocio.setMercadoPagoHabilitado(false);
+                aplicarConfigPagoPublica(negocio, null);
             }
             return negocio;
         }
@@ -398,8 +400,58 @@ public class NegocioDataService {
             }
         }
         n.setBloquesHorario(bloques);
-        n.setMercadoPagoHabilitado(isMercadoPagoConfigurado(data));
+        aplicarConfigPagoPublica(n, data);
         return n;
+    }
+
+    public void aplicarConfigPagoPublica(Negocio negocio, NegocioData data) {
+        String metodo = resolveMetodoPago(data);
+        negocio.setMetodoPago(metodo);
+
+        boolean transferenciaOk = isTransferenciaConfigurada(data);
+        boolean mpOk = isMercadoPagoConfigurado(data);
+
+        if ("TRANSFERENCIA".equals(metodo) && transferenciaOk) {
+            Negocio.PagoTransferenciaInfo info = new Negocio.PagoTransferenciaInfo();
+            info.setAlias(data.getPagoAlias().trim());
+            info.setCvuCbu(data.getPagoCvuCbu().trim());
+            info.setTitular(data.getPagoTitular().trim());
+            negocio.setPagoTransferencia(info);
+            negocio.setPagoHabilitado(true);
+            negocio.setMercadoPagoHabilitado(false);
+        } else if ("MERCADO_PAGO".equals(metodo) && mpOk) {
+            negocio.setPagoTransferencia(null);
+            negocio.setPagoHabilitado(true);
+            negocio.setMercadoPagoHabilitado(true);
+        } else {
+            negocio.setPagoTransferencia(null);
+            negocio.setPagoHabilitado(false);
+            negocio.setMercadoPagoHabilitado(false);
+        }
+    }
+
+    public String resolveMetodoPago(NegocioData data) {
+        if (data == null) {
+            return "NINGUNO";
+        }
+        String metodo = data.getMetodoPago();
+        if (metodo != null && !metodo.trim().isEmpty()) {
+            return metodo.trim().toUpperCase();
+        }
+        // Compatibilidad: si ya había token de MP y no eligió método, asumir MP
+        if (isMercadoPagoConfigurado(data)) {
+            return "MERCADO_PAGO";
+        }
+        return "NINGUNO";
+    }
+
+    public boolean isTransferenciaConfigurada(NegocioData data) {
+        if (data == null) {
+            return false;
+        }
+        return notBlank(data.getPagoAlias())
+            && notBlank(data.getPagoCvuCbu())
+            && notBlank(data.getPagoTitular());
     }
 
     public boolean isMercadoPagoConfigurado(String negocioCodigo) {
@@ -423,6 +475,60 @@ public class NegocioDataService {
         getOrCreate(codigo);
         String value = accessToken != null ? accessToken.trim() : "";
         negocioDataRepository.updateField(codigo, "mercadoPagoAccessToken", value);
+    }
+
+    public Map<String, Object> getConfigPagoPanel(String negocioCodigo) {
+        NegocioData data = getOrCreate(negocioCodigo.toLowerCase());
+        String metodo = resolveMetodoPago(data);
+        Map<String, Object> result = new HashMap<>();
+        result.put("metodoPago", metodo);
+        result.put("alias", data.getPagoAlias() != null ? data.getPagoAlias() : "");
+        result.put("cvuCbu", data.getPagoCvuCbu() != null ? data.getPagoCvuCbu() : "");
+        result.put("titular", data.getPagoTitular() != null ? data.getPagoTitular() : "");
+        result.put("transferenciaConfigurada", isTransferenciaConfigurada(data));
+        result.put("mercadoPagoConfigurado", isMercadoPagoConfigurado(data));
+        result.put("pagoHabilitado",
+            ("TRANSFERENCIA".equals(metodo) && isTransferenciaConfigurada(data))
+                || ("MERCADO_PAGO".equals(metodo) && isMercadoPagoConfigurado(data)));
+        return result;
+    }
+
+    public Map<String, Object> setConfigPagoPanel(String negocioCodigo, String metodoPago,
+                                                   String alias, String cvuCbu, String titular) {
+        String codigo = negocioCodigo.toLowerCase();
+        getOrCreate(codigo);
+
+        String metodo = metodoPago != null ? metodoPago.trim().toUpperCase() : "NINGUNO";
+        if (!Set.of("NINGUNO", "TRANSFERENCIA", "MERCADO_PAGO").contains(metodo)) {
+            throw new IllegalArgumentException("Método de pago inválido");
+        }
+
+        negocioDataRepository.updateField(codigo, "metodoPago", metodo);
+
+        if ("TRANSFERENCIA".equals(metodo) || alias != null || cvuCbu != null || titular != null) {
+            if (alias != null) {
+                negocioDataRepository.updateField(codigo, "pagoAlias", alias.trim());
+            }
+            if (cvuCbu != null) {
+                negocioDataRepository.updateField(codigo, "pagoCvuCbu", cvuCbu.trim());
+            }
+            if (titular != null) {
+                negocioDataRepository.updateField(codigo, "pagoTitular", titular.trim());
+            }
+        }
+
+        if ("TRANSFERENCIA".equals(metodo) && !isTransferenciaConfigurada(getOrCreate(codigo))) {
+            throw new IllegalArgumentException("Completá alias, CVU/CBU y nombre del titular para activar transferencia");
+        }
+        if ("MERCADO_PAGO".equals(metodo) && !isMercadoPagoConfigurado(codigo)) {
+            throw new IllegalArgumentException("Configurá el Access Token de Mercado Pago antes de activar ese método");
+        }
+
+        return getConfigPagoPanel(codigo);
+    }
+
+    private static boolean notBlank(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 
     public Optional<NegocioData.ServicioData> findServicioById(String negocioCodigo, Integer idServicio) {

@@ -14,6 +14,7 @@ import com.maxturnos.service.EmailService;
 import com.maxturnos.service.NegocioDataService;
 import com.maxturnos.service.ReservaService;
 import com.maxturnos.model.NegocioData;
+import com.maxturnos.util.FechaUtil;
 import com.maxturnos.util.ModelConverter;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -26,7 +27,6 @@ import org.springframework.web.bind.annotation.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -61,36 +61,12 @@ public class ReservaController {
     @PostMapping
     public ResponseEntity<ApiResponse<Reserva>> crearReserva(@Valid @RequestBody ReservaRequest request) {
         try {
-            // Parsear la fecha desde el string "YYYY-MM-DD" para evitar problemas de zona horaria
-            Date fechaNormalizada = null;
-            if (request.getFecha() != null && !request.getFecha().trim().isEmpty()) {
-                try {
-                    // Parsear el string "YYYY-MM-DD" directamente
-                    String fechaStr = request.getFecha().trim();
-                    String[] partes = fechaStr.split("-");
-                    if (partes.length == 3) {
-                        int año = Integer.parseInt(partes[0]);
-                        int mes = Integer.parseInt(partes[1]) - 1; // Calendar.MONTH es 0-based
-                        int dia = Integer.parseInt(partes[2]);
-                        
-                        // Crear fecha en zona horaria local a medianoche
-                        Calendar cal = Calendar.getInstance();
-                        cal.set(Calendar.YEAR, año);
-                        cal.set(Calendar.MONTH, mes);
-                        cal.set(Calendar.DAY_OF_MONTH, dia);
-                        cal.set(Calendar.HOUR_OF_DAY, 0);
-                        cal.set(Calendar.MINUTE, 0);
-                        cal.set(Calendar.SECOND, 0);
-                        cal.set(Calendar.MILLISECOND, 0);
-                        fechaNormalizada = cal.getTime();
-                    } else {
-                        throw new RuntimeException("Formato de fecha inválido. Se espera YYYY-MM-DD");
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException("Error al parsear la fecha: " + e.getMessage());
-                }
-            } else {
-                throw new RuntimeException("La fecha es requerida");
+            // Parsear la fecha desde el string "YYYY-MM-DD" en zona Argentina
+            Date fechaNormalizada;
+            try {
+                fechaNormalizada = FechaUtil.parseFechaDia(request.getFecha());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException(e.getMessage());
             }
             
             Reserva reserva = new Reserva();
@@ -313,25 +289,8 @@ public class ReservaController {
             Date fechaDate = null;
             if (fecha != null && !fecha.trim().isEmpty()) {
                 try {
-                    String fechaStr = fecha.trim();
-                    String[] partes = fechaStr.split("-");
-                    if (partes.length == 3) {
-                        int año = Integer.parseInt(partes[0]);
-                        int mes = Integer.parseInt(partes[1]) - 1; // Calendar.MONTH es 0-based
-                        int dia = Integer.parseInt(partes[2]);
-                        
-                        // Crear fecha en zona horaria local a medianoche
-                        Calendar cal = Calendar.getInstance();
-                        cal.set(Calendar.YEAR, año);
-                        cal.set(Calendar.MONTH, mes);
-                        cal.set(Calendar.DAY_OF_MONTH, dia);
-                        cal.set(Calendar.HOUR_OF_DAY, 0);
-                        cal.set(Calendar.MINUTE, 0);
-                        cal.set(Calendar.SECOND, 0);
-                        cal.set(Calendar.MILLISECOND, 0);
-                        fechaDate = cal.getTime();
-                    }
-                } catch (Exception e) {
+                    fechaDate = FechaUtil.parseFechaDia(fecha);
+                } catch (IllegalArgumentException e) {
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(ApiResponse.error("Formato de fecha inválido. Se espera YYYY-MM-DD"));
                 }
@@ -372,35 +331,12 @@ public class ReservaController {
             @RequestParam Integer servicioId,
             @RequestParam Integer duracionMinutos) {
         try {
-            // Parsear la fecha desde el string "YYYY-MM-DD" para evitar problemas de zona horaria
-            Date fechaNormalizada = null;
-            if (fecha != null && !fecha.trim().isEmpty()) {
-                try {
-                    String fechaStr = fecha.trim();
-                    String[] partes = fechaStr.split("-");
-                    if (partes.length == 3) {
-                        int año = Integer.parseInt(partes[0]);
-                        int mes = Integer.parseInt(partes[1]) - 1; // Calendar.MONTH es 0-based
-                        int dia = Integer.parseInt(partes[2]);
-                        
-                        // Crear fecha en zona horaria local a medianoche
-                        Calendar cal = Calendar.getInstance();
-                        cal.set(Calendar.YEAR, año);
-                        cal.set(Calendar.MONTH, mes);
-                        cal.set(Calendar.DAY_OF_MONTH, dia);
-                        cal.set(Calendar.HOUR_OF_DAY, 0);
-                        cal.set(Calendar.MINUTE, 0);
-                        cal.set(Calendar.SECOND, 0);
-                        cal.set(Calendar.MILLISECOND, 0);
-                        fechaNormalizada = cal.getTime();
-                    } else {
-                        throw new RuntimeException("Formato de fecha inválido. Se espera YYYY-MM-DD");
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException("Error al parsear la fecha: " + e.getMessage());
-                }
-            } else {
-                throw new RuntimeException("La fecha es requerida");
+            // Parsear la fecha desde el string "YYYY-MM-DD" en zona Argentina
+            Date fechaNormalizada;
+            try {
+                fechaNormalizada = FechaUtil.parseFechaDia(fecha);
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException(e.getMessage());
             }
             
             Map<String, Object> resultado = reservaService.obtenerHorariosDisponibles(
@@ -482,24 +418,13 @@ public class ReservaController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error("fecha y hora son requeridos"));
             }
-            String fechaStr = request.getFecha().trim();
-            String[] partes = fechaStr.split("-");
-            if (partes.length != 3) {
+            Date fechaDate;
+            try {
+                fechaDate = FechaUtil.parseFechaDia(request.getFecha());
+            } catch (IllegalArgumentException e) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Formato de fecha inválido. Se espera YYYY-MM-DD"));
+                    .body(ApiResponse.error(e.getMessage()));
             }
-            int año = Integer.parseInt(partes[0]);
-            int mes = Integer.parseInt(partes[1]) - 1;
-            int dia = Integer.parseInt(partes[2]);
-            Calendar cal = Calendar.getInstance();
-            cal.set(Calendar.YEAR, año);
-            cal.set(Calendar.MONTH, mes);
-            cal.set(Calendar.DAY_OF_MONTH, dia);
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            Date fechaDate = cal.getTime();
             String hora = request.getHora().trim();
             negocioDataService.updateReserva(establecimiento, id, "fecha", fechaDate);
             negocioDataService.updateReserva(establecimiento, id, "hora", hora);

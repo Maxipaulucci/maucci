@@ -7,6 +7,8 @@ import { barberiaCache } from '../data/barberiaCache';
 import { useAuth } from '../../context/AuthContext';
 import { useEstablecimiento } from '../../context/EstablecimientoContext';
 import { scrollToTop } from '../../hooks/useScrollToTop';
+import TransferPaymentModal from '../../components/shared/TransferPaymentModal';
+import { fechaCalendarioDesdeApi, formatearFechaYYYYMMDD, hoyYYYYMMDDEnNegocio } from '../../utils/fecha';
 import './Booking.css';
 
 const Booking = () => {
@@ -48,6 +50,8 @@ const Booking = () => {
   const [isPaying, setIsPaying] = useState(false);
   const [pagoError, setPagoError] = useState('');
   const [createdReservaId, setCreatedReservaId] = useState(null);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [pagoConfirmado, setPagoConfirmado] = useState(false);
 
   // Al confirmar o cambiar de paso, subir al inicio
   useEffect(() => {
@@ -149,8 +153,7 @@ const Booking = () => {
     const fetchEstablecimientoConfig = async () => {
       try {
         const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        const fechaDesde = hoy.toISOString().split('T')[0];
+        const fechaDesde = hoyYYYYMMDDEnNegocio();
         const [negocioResponse, diasCanceladosResponse] = await Promise.all([
           negociosService.obtenerNegocio(establecimiento),
           diasCanceladosService.obtenerDiasCancelados(establecimiento, fechaDesde).catch(() => ({ data: [] }))
@@ -185,13 +188,7 @@ const Booking = () => {
     
     // Crear un Set de fechas canceladas para búsqueda rápida
     const fechasCanceladasSet = new Set(
-      diasCancelados.map(dia => {
-        const fechaDia = new Date(dia.fecha);
-        const year = fechaDia.getFullYear();
-        const month = String(fechaDia.getMonth() + 1).padStart(2, '0');
-        const day = String(fechaDia.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      })
+      diasCancelados.map(dia => formatearFechaYYYYMMDD(fechaCalendarioDesdeApi(dia.fecha))).filter(Boolean)
     );
     
     // Verificar si el día actual ya pasó la hora de cierre
@@ -359,11 +356,26 @@ const Booking = () => {
     setPagoError('');
     setIsPaying(false);
     setCreatedReservaId(null);
+    setShowTransferModal(false);
+    setPagoConfirmado(false);
   };
 
-  const handlePagarMercadoPago = async () => {
-    if (!selectedService?.id) return;
+  const metodoPago = establecimientoConfig?.metodoPago || 'NINGUNO';
+  const pagoHabilitado = !!establecimientoConfig?.pagoHabilitado;
+  const esTransferencia = metodoPago === 'TRANSFERENCIA' && pagoHabilitado && !!establecimientoConfig?.pagoTransferencia;
+  const esMercadoPago = metodoPago === 'MERCADO_PAGO' && !!establecimientoConfig?.mercadoPagoHabilitado;
+
+  const handlePagar = async () => {
     setPagoError('');
+    if (esTransferencia) {
+      if (!createdReservaId) {
+        setPagoError('No se encontró la reserva para confirmar el pago');
+        return;
+      }
+      setShowTransferModal(true);
+      return;
+    }
+    if (!esMercadoPago || !selectedService?.id) return;
     setIsPaying(true);
     try {
       const response = await pagosService.crearPreferencia({
@@ -414,25 +426,42 @@ const Booking = () => {
             )}
           </div>
           {pagoError && <div className="booking-pago-error">{pagoError}</div>}
+          {pagoConfirmado && (
+            <div className="booking-pago-ok">Pago confirmado. Gracias.</div>
+          )}
           <div className="success-actions">
             <button onClick={resetBooking} className="btn btn-primary">
               Hacer Nueva Reserva
             </button>
-            <button
-              type="button"
-              className="btn btn-mercadopago"
-              onClick={handlePagarMercadoPago}
-              disabled={isPaying}
-            >
-              <img
-                src="/assets/img/logos_genericos/mercadoPago.png"
-                alt=""
-                className="btn-mercadopago-logo"
-              />
-              <span>{isPaying ? 'Redirigiendo...' : 'Pagar'}</span>
-            </button>
+            {(esTransferencia || esMercadoPago) && !pagoConfirmado && (
+              <button
+                type="button"
+                className={`btn ${esMercadoPago ? 'btn-mercadopago' : 'btn-pagar-turno'}`}
+                onClick={handlePagar}
+                disabled={isPaying}
+              >
+                {esMercadoPago && (
+                  <img
+                    src="/assets/img/logos_genericos/mercadoPago.png"
+                    alt=""
+                    className="btn-mercadopago-logo"
+                  />
+                )}
+                <span>
+                  {isPaying ? 'Redirigiendo...' : 'Pagar'}
+                </span>
+              </button>
+            )}
           </div>
         </div>
+        <TransferPaymentModal
+          isOpen={showTransferModal}
+          onClose={() => setShowTransferModal(false)}
+          establecimiento={establecimiento}
+          reservaId={createdReservaId}
+          pagoTransferencia={establecimientoConfig?.pagoTransferencia}
+          onSuccess={() => setPagoConfirmado(true)}
+        />
       </div>
     );
   }

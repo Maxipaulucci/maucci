@@ -3,13 +3,13 @@ package com.maxturnos.controller;
 import com.maxturnos.dto.ApiResponse;
 import com.maxturnos.model.HorarioBloqueado;
 import com.maxturnos.model.NegocioData;
-import com.maxturnos.util.ModelConverter;
 import com.maxturnos.service.HorarioBloqueadoService;
+import com.maxturnos.util.FechaUtil;
+import com.maxturnos.util.ModelConverter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -94,28 +94,7 @@ public class HorarioBloqueadoController {
     }
     
     private Date parseFecha(String fechaStr) {
-        try {
-            String[] partes = fechaStr.split("-");
-            if (partes.length == 3) {
-                int año = Integer.parseInt(partes[0]);
-                int mes = Integer.parseInt(partes[1]) - 1; // Calendar.MONTH es 0-based
-                int dia = Integer.parseInt(partes[2]);
-                
-                Calendar cal = Calendar.getInstance();
-                cal.set(Calendar.YEAR, año);
-                cal.set(Calendar.MONTH, mes);
-                cal.set(Calendar.DAY_OF_MONTH, dia);
-                cal.set(Calendar.HOUR_OF_DAY, 0);
-                cal.set(Calendar.MINUTE, 0);
-                cal.set(Calendar.SECOND, 0);
-                cal.set(Calendar.MILLISECOND, 0);
-                return cal.getTime();
-            } else {
-                throw new RuntimeException("Formato de fecha inválido. Use YYYY-MM-DD");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Error al parsear la fecha: " + e.getMessage());
-        }
+        return FechaUtil.parseFechaDia(fechaStr);
     }
 }
 

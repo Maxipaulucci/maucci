@@ -1,0 +1,138 @@
+.comprobante-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: rgba(15, 23, 42, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.comprobante-viewer-modal {
+  width: min(960px, 100%);
+  height: min(90vh, 860px);
+  background: #111827;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.comprobante-viewer-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #1f2937;
+  color: #f9fafb;
+  flex-shrink: 0;
+}
+
+.comprobante-viewer-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comprobante-viewer-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.comprobante-viewer-zoom button {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  background: #374151;
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.comprobante-viewer-zoom button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.comprobante-viewer-zoom span {
+  min-width: 3.2rem;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.comprobante-viewer-reset {
+  width: auto !important;
+  padding: 0 0.55rem;
+  font-size: 0.75rem !important;
+}
+
+.comprobante-viewer-close {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #f9fafb;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.comprobante-viewer-close:hover {
+  background: #374151;
+}
+
+.comprobante-viewer-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.25rem;
+  background: #0b1220;
+}
+
+.comprobante-viewer-canvas {
+  transform-origin: top center;
+  transition: transform 0.15s ease;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.comprobante-viewer-canvas img {
+  max-width: min(860px, 85vw);
+  height: auto;
+  display: block;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.comprobante-viewer-pdf {
+  width: min(860px, 85vw);
+  height: min(70vh, 700px);
+  border: none;
+  border-radius: 6px;
+  background: #fff;
+}
+
+@media (max-width: 640px) {
+  .comprobante-viewer-header {
+    flex-wrap: wrap;
+  }
+
+  .comprobante-viewer-header h3 {
+    width: 100%;
+    order: -1;
+  }
+}

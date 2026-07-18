@@ -8,6 +8,8 @@ import EnviarEmailModal from '../../components/shared/EnviarEmailModal';
 import ConfirmarCancelarTodosModal from '../../components/shared/ConfirmarCancelarTodosModal';
 import ModificarTurnoModal from '../../components/shared/ModificarTurnoModal';
 import Notification from '../../components/shared/Notification';
+import ComprobanteViewerModal from '../../components/shared/ComprobanteViewerModal';
+import { fechaCalendarioDesdeApi, formatearFechaYYYYMMDD } from '../../utils/fecha';
 import './NegocioPage.css';
 import './TurnosReservados.css';
 
@@ -34,6 +36,7 @@ const TurnosReservados = () => {
   const [modoVisualizacion, setModoVisualizacion] = useState(null); // null, 'personal', 'general'
   const [profesionalSeleccionado, setProfesionalSeleccionado] = useState(null);
   const [team, setTeam] = useState([]); // Estado para el equipo cargado desde el backend
+  const [comprobanteViewer, setComprobanteViewer] = useState(null);
 
   // Función para convertir datos del backend al formato esperado
   const convertirPersonalABackend = (personalBackend) => {
@@ -100,8 +103,8 @@ const TurnosReservados = () => {
       // Contar reservas por día
       const contadores = {};
       reservas.forEach(reserva => {
-        const fechaReserva = new Date(reserva.fecha);
-        const fechaStr = formatearFecha(fechaReserva);
+        const fechaReserva = fechaCalendarioDesdeApi(reserva.fecha);
+        const fechaStr = formatearFechaYYYYMMDD(fechaReserva);
         contadores[fechaStr] = (contadores[fechaStr] || 0) + 1;
       });
       
@@ -142,14 +145,8 @@ const TurnosReservados = () => {
     }
   };
 
-  // Función para formatear fecha como YYYY-MM-DD (sin problemas de zona horaria)
-  const formatearFecha = (fecha) => {
-    // Usar getFullYear, getMonth, getDate para evitar problemas de zona horaria
-    const año = fecha.getFullYear();
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    const dia = String(fecha.getDate()).padStart(2, '0');
-    return `${año}-${mes}-${dia}`;
-  };
+  // Función para formatear fecha como YYYY-MM-DD (día de calendario)
+  const formatearFecha = (fecha) => formatearFechaYYYYMMDD(fecha);
 
   // Función para verificar si una fecha es pasada
   // Compara directamente año, mes y día sin problemas de zona horaria
@@ -727,6 +724,41 @@ const TurnosReservados = () => {
                             : '(Nombre no disponible)'}
                         </span>
                       </div>
+                      <div className="reserva-campo">
+                        <span className="reserva-label">Pago:</span>
+                        <span className={`reserva-valor reserva-pago ${reserva.pagado ? 'confirmado' : 'pendiente'}`}>
+                          {reserva.pagado ? 'Confirmado' : 'Pendiente'}
+                        </span>
+                      </div>
+                      {reserva.pagado && reserva.comprobantePago && (
+                        <div className="reserva-campo reserva-comprobante">
+                          <span className="reserva-label">Comprobante:</span>
+                          <button
+                            type="button"
+                            className="reserva-comprobante-link"
+                            onClick={() => {
+                              const contentType = reserva.comprobanteContentType || 'application/pdf';
+                              setComprobanteViewer({
+                                src: `data:${contentType};base64,${reserva.comprobantePago}`,
+                                contentType,
+                                nombre: reserva.comprobanteNombre || 'Comprobante de pago'
+                              });
+                            }}
+                          >
+                            {String(reserva.comprobanteContentType || '').startsWith('image/') && (
+                              <img
+                                src={`data:${reserva.comprobanteContentType};base64,${reserva.comprobantePago}`}
+                                alt={reserva.comprobanteNombre || 'Comprobante de pago'}
+                                className="reserva-comprobante-preview"
+                              />
+                            )}
+                            <span>
+                              Ver comprobante
+                              {reserva.comprobanteNombre ? ` (${reserva.comprobanteNombre})` : ''}
+                            </span>
+                          </button>
+                        </div>
+                      )}
                       {reserva.notas && reserva.notas.trim() !== '' && (
                         <div className="reserva-campo reserva-notas">
                           <span className="reserva-label">Nota:</span>
@@ -799,6 +831,12 @@ const TurnosReservados = () => {
           onConfirm={handleConfirmarCancelarTodos}
           cantidadTurnos={reservasDelDia.length}
           fecha={selectedDate ? formatearFechaMostrar(selectedDate) : null}
+        />
+
+        <ComprobanteViewerModal
+          isOpen={!!comprobanteViewer}
+          onClose={() => setComprobanteViewer(null)}
+          comprobante={comprobanteViewer}
         />
 
         {/* Notificación */}

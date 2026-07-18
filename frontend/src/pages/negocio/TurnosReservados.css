@@ -423,6 +423,51 @@
   font-weight: 600;
 }
 
+.reserva-pago.confirmado {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.reserva-pago.pendiente {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.reserva-comprobante {
+  margin-top: 0.25rem;
+}
+
+.reserva-comprobante-link {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.reserva-comprobante-link:hover {
+  text-decoration: underline;
+}
+
+.reserva-comprobante-preview {
+  max-width: 220px;
+  max-height: 160px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
 .reserva-notas {
   margin-top: 0.5rem;
   padding-top: 0.75rem;

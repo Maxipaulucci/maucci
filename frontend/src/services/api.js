@@ -240,7 +240,7 @@ export const reservasService = {
   }
 };
 
-// Pagos Mercado Pago
+// Pagos (transferencia / Mercado Pago)
 export const pagosService = {
   crearPreferencia: async ({ establecimiento, servicioId, reservaId, payerEmail }) => {
     return await fetchAPI('/pagos/preferencia', {
@@ -259,6 +259,25 @@ export const pagosService = {
     return await fetchAPI('/pagos/confirmar', {
       method: 'POST',
       body: JSON.stringify({ establecimiento, reservaId, paymentId, externalReference, status })
+    });
+  },
+
+  confirmarTransferencia: async ({
+    establecimiento,
+    reservaId,
+    comprobanteBase64,
+    comprobanteNombre,
+    comprobanteContentType
+  }) => {
+    return await fetchAPI('/pagos/transferencia', {
+      method: 'POST',
+      body: JSON.stringify({
+        establecimiento,
+        reservaId,
+        comprobanteBase64,
+        comprobanteNombre,
+        comprobanteContentType
+      })
     });
   }
 };
@@ -340,6 +359,17 @@ export const negociosService = {
     return await fetchAPI(`/negocios/${codigo}/categorias`, {
       method: 'PUT',
       body: JSON.stringify({ categorias })
+    });
+  },
+
+  obtenerConfigPago: async (codigo) => {
+    return await fetchAPI(`/negocios/${codigo}/pagos`);
+  },
+
+  actualizarConfigPago: async (codigo, { metodoPago, alias, cvuCbu, titular }) => {
+    return await fetchAPI(`/negocios/${codigo}/pagos`, {
+      method: 'PUT',
+      body: JSON.stringify({ metodoPago, alias, cvuCbu, titular })
     });
   },
 

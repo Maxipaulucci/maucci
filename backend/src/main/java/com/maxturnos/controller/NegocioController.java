@@ -84,8 +84,14 @@ public class NegocioController {
                     if (data.getOrdenResenas() != null && !data.getOrdenResenas().isEmpty()) {
                         negocio.setOrdenResenas(data.getOrdenResenas());
                     }
-                    negocio.setMercadoPagoHabilitado(negocioDataService.isMercadoPagoConfigurado(data));
+                    negocioDataService.aplicarConfigPagoPublica(negocio, data);
                 });
+                if (negocio.getMetodoPago() == null) {
+                    negocio.setMetodoPago("NINGUNO");
+                }
+                if (negocio.getPagoHabilitado() == null) {
+                    negocio.setPagoHabilitado(false);
+                }
                 if (negocio.getMercadoPagoHabilitado() == null) {
                     negocio.setMercadoPagoHabilitado(false);
                 }
@@ -98,6 +104,39 @@ public class NegocioController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{codigo}/pagos")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> obtenerConfigPago(@PathVariable String codigo) {
+        try {
+            Map<String, Object> data = negocioDataService.getConfigPagoPanel(codigo.toLowerCase());
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al consultar configuración de pagos: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{codigo}/pagos")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> actualizarConfigPago(
+            @PathVariable String codigo,
+            @RequestBody Map<String, String> body) {
+        try {
+            String metodoPago = body != null ? body.get("metodoPago") : null;
+            String alias = body != null ? body.get("alias") : null;
+            String cvuCbu = body != null ? body.get("cvuCbu") : null;
+            String titular = body != null ? body.get("titular") : null;
+            Map<String, Object> data = negocioDataService.setConfigPagoPanel(
+                codigo.toLowerCase(), metodoPago, alias, cvuCbu, titular
+            );
+            return ResponseEntity.ok(ApiResponse.success("Configuración de pagos guardada", data));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al guardar configuración de pagos: " + e.getMessage()));
         }
     }
 

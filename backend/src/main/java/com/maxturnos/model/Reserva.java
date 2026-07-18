@@ -45,8 +45,13 @@ public class Reserva {
     
     private String usuarioApellido; // Apellido del usuario que hizo la reserva
 
-    /** true si el cliente pagó con Mercado Pago */
+    /** true si el cliente confirmó el pago (transferencia o Mercado Pago) */
     private Boolean pagado = false;
+
+    /** Comprobante de transferencia (base64, sin prefijo data:). */
+    private String comprobantePago;
+    private String comprobanteNombre;
+    private String comprobanteContentType;
     
     private LocalDateTime fechaCreacion = LocalDateTime.now();
     

@@ -3,24 +3,27 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaLock, FaSignOutAlt, FaEye, FaEyeSlash, FaTrash, FaHistory } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
-import { authService, pagosService } from '../../services/api';
+import { authService, negociosService, pagosService } from '../../services/api';
+import TransferPaymentModal from './TransferPaymentModal';
+import { fechaCalendarioDesdeApi } from '../../utils/fecha';
 import './UserProfileModal.css';
 
 const formatFecha = (dateStr) => {
   if (!dateStr) return '—';
   try {
-    const d = new Date(dateStr);
+    const d = fechaCalendarioDesdeApi(dateStr);
+    if (!d) return dateStr;
     return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   } catch {
     return dateStr;
   }
 };
 
-/** true si la fecha del turno aún no pasó (mismo día o futuro) */
+/** true si la fecha del turno aún no pasó (mismo día o futuro, zona Argentina) */
 const esTurnoVigenteParaPago = (fecha) => {
   if (!fecha) return false;
-  const d = new Date(fecha);
-  if (Number.isNaN(d.getTime())) return false;
+  const d = fechaCalendarioDesdeApi(fecha);
+  if (!d || Number.isNaN(d.getTime())) return false;
   const finDelDia = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
   return finDelDia.getTime() >= Date.now();
 };
@@ -46,6 +49,13 @@ const UserProfileModal = ({ isOpen, onClose }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [payingReservaId, setPayingReservaId] = useState(null);
+  const [pagoPorEstablecimiento, setPagoPorEstablecimiento] = useState({});
+  const [transferModal, setTransferModal] = useState({
+    open: false,
+    establecimiento: '',
+    reservaId: '',
+    pagoTransferencia: null
+  });
 
   // Resetear estado cuando el modal se abre o cierra
   useEffect(() => {
@@ -66,9 +76,38 @@ const UserProfileModal = ({ isOpen, onClose }) => {
     setShowHistorial(true);
     setLoadingHistorial(true);
     setError('');
+    setPagoPorEstablecimiento({});
     try {
       const res = await authService.getMiHistorial(user?.email);
-      setHistorial(Array.isArray(res?.data) ? res.data : []);
+      const items = Array.isArray(res?.data) ? res.data : [];
+      setHistorial(items);
+
+      const codigos = [...new Set(
+        items
+          .map((item) => (item.establecimiento || '').trim().toLowerCase())
+          .filter(Boolean)
+      )];
+
+      const configs = await Promise.all(
+        codigos.map(async (codigo) => {
+          try {
+            const negocioRes = await negociosService.obtenerNegocio(codigo);
+            const negocio = negocioRes?.data ?? negocioRes;
+            return [
+              codigo,
+              {
+                metodoPago: negocio?.metodoPago || 'NINGUNO',
+                pagoHabilitado: !!negocio?.pagoHabilitado,
+                mercadoPagoHabilitado: !!negocio?.mercadoPagoHabilitado,
+                pagoTransferencia: negocio?.pagoTransferencia || null
+              }
+            ];
+          } catch {
+            return [codigo, { metodoPago: 'NINGUNO', pagoHabilitado: false }];
+          }
+        })
+      );
+      setPagoPorEstablecimiento(Object.fromEntries(configs));
     } catch (err) {
       setError(err.message || 'Error al cargar historial');
       setHistorial([]);
@@ -77,25 +116,64 @@ const UserProfileModal = ({ isOpen, onClose }) => {
     }
   };
 
+  const negocioPermitePago = (establecimiento) => {
+    if (!establecimiento) return false;
+    const cfg = pagoPorEstablecimiento[establecimiento.trim().toLowerCase()];
+    return !!cfg?.pagoHabilitado;
+  };
+
   const handlePagarTurno = async (item) => {
     if (!item?.id || !item?.establecimiento) {
       setError('No se puede iniciar el pago de este turno');
       return;
     }
+    if (!negocioPermitePago(item.establecimiento)) {
+      return;
+    }
     setError('');
     setPayingReservaId(item.id);
     try {
-      const response = await pagosService.crearPreferencia({
-        establecimiento: item.establecimiento,
-        reservaId: item.id,
-        payerEmail: user?.email
-      });
-      const data = response.data ?? response;
-      const initPoint = data.initPoint;
-      if (!initPoint) {
-        throw new Error('No se recibió la URL de Mercado Pago');
+      const codigo = item.establecimiento.trim().toLowerCase();
+      let cfg = pagoPorEstablecimiento[codigo];
+      if (!cfg) {
+        const negocioRes = await negociosService.obtenerNegocio(item.establecimiento);
+        const negocio = negocioRes?.data ?? negocioRes;
+        cfg = {
+          metodoPago: negocio?.metodoPago || 'NINGUNO',
+          pagoHabilitado: !!negocio?.pagoHabilitado,
+          mercadoPagoHabilitado: !!negocio?.mercadoPagoHabilitado,
+          pagoTransferencia: negocio?.pagoTransferencia || null
+        };
       }
-      window.location.href = initPoint;
+
+      if (cfg.metodoPago === 'TRANSFERENCIA' && cfg.pagoHabilitado && cfg.pagoTransferencia) {
+        setTransferModal({
+          open: true,
+          establecimiento: item.establecimiento,
+          reservaId: item.id,
+          pagoTransferencia: cfg.pagoTransferencia
+        });
+        setPayingReservaId(null);
+        return;
+      }
+
+      if (cfg.metodoPago === 'MERCADO_PAGO' && cfg.mercadoPagoHabilitado) {
+        const response = await pagosService.crearPreferencia({
+          establecimiento: item.establecimiento,
+          reservaId: item.id,
+          payerEmail: user?.email
+        });
+        const data = response.data ?? response;
+        const initPoint = data.initPoint;
+        if (!initPoint) {
+          throw new Error('No se recibió la URL de Mercado Pago');
+        }
+        window.location.href = initPoint;
+        return;
+      }
+
+      setError('Este negocio no tiene un método de pago activo en la web');
+      setPayingReservaId(null);
     } catch (err) {
       console.error('Error al iniciar pago desde historial:', err);
       setError(err.message || 'No se pudo iniciar el pago. Intentá de nuevo.');
@@ -280,7 +358,8 @@ const UserProfileModal = ({ isOpen, onClose }) => {
               ) : (
                 <ul className="user-historial-list">
                   {historial.map((item) => {
-                    const mostrarPago = esTurnoVigenteParaPago(item.fecha);
+                    const mostrarPago =
+                      esTurnoVigenteParaPago(item.fecha) && negocioPermitePago(item.establecimiento);
                     const pagado = item.pagado === true;
                     return (
                       <li key={item.id || `${item.establecimiento}-${item.fecha}-${item.hora}`} className="user-historial-item">
@@ -296,16 +375,11 @@ const UserProfileModal = ({ isOpen, onClose }) => {
                             {!pagado && (
                               <button
                                 type="button"
-                                className="btn-mercadopago user-historial-pagar-btn"
+                                className="btn-pagar-turno user-historial-pagar-btn"
                                 onClick={() => handlePagarTurno(item)}
                                 disabled={payingReservaId === item.id}
                               >
-                                <img
-                                  src="/assets/img/logos_genericos/mercadoPago.png"
-                                  alt=""
-                                  className="btn-mercadopago-logo"
-                                />
-                                <span>{payingReservaId === item.id ? 'Redirigiendo...' : 'Pagar'}</span>
+                                <span>{payingReservaId === item.id ? 'Cargando...' : 'Pagar'}</span>
                               </button>
                             )}
                           </>
@@ -322,6 +396,23 @@ const UserProfileModal = ({ isOpen, onClose }) => {
               >
                 Volver
               </button>
+              <TransferPaymentModal
+                isOpen={transferModal.open}
+                onClose={() => setTransferModal({
+                  open: false,
+                  establecimiento: '',
+                  reservaId: '',
+                  pagoTransferencia: null
+                })}
+                establecimiento={transferModal.establecimiento}
+                reservaId={transferModal.reservaId}
+                pagoTransferencia={transferModal.pagoTransferencia}
+                onSuccess={() => {
+                  setHistorial((prev) => prev.map((h) =>
+                    h.id === transferModal.reservaId ? { ...h, pagado: true } : h
+                  ));
+                }}
+              />
             </div>
             )}
           </>

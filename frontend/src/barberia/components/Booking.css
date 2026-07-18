@@ -520,6 +520,42 @@
   cursor: not-allowed;
 }
 
+.btn-pagar-turno {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #2563eb;
+  border: 1px solid #1d4ed8;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.7rem 1.4rem;
+  font-size: 1rem;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  width: 100%;
+  min-height: 3rem;
+}
+
+.btn-pagar-turno:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.btn-pagar-turno:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.booking-pago-ok {
+  background: #ecfdf5;
+  color: #047857;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.65rem;
+}
+
 .booking-pago-error {
   background: #fef2f2;
   color: #b91c1c;

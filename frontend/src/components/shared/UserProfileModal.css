@@ -165,9 +165,9 @@
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
-  background-color: #ffe600;
-  border: 1px solid #e6cf00;
-  color: #1a1a1a;
+  background-color: #2563eb;
+  border: 1px solid #1d4ed8;
+  color: #fff;
   font-weight: 700;
   padding: 0.55rem 1rem;
   font-size: 0.9rem;
@@ -179,16 +179,8 @@
   transition: background-color 0.2s ease, opacity 0.2s ease;
 }
 
-.user-historial-pagar-btn .btn-mercadopago-logo {
-  width: 2rem;
-  height: 2rem;
-  flex-shrink: 0;
-  display: block;
-  object-fit: contain;
-}
-
 .user-historial-pagar-btn:hover:not(:disabled) {
-  background-color: #f5dc00;
+  background-color: #1d4ed8;
 }
 
 .user-historial-pagar-btn:disabled {

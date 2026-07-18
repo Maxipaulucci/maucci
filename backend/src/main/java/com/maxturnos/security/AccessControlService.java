@@ -51,6 +51,10 @@ public class AccessControlService {
             return true;
         }
 
+        if ("POST".equals(method) && "/api/pagos/transferencia".equals(path)) {
+            return true;
+        }
+
         if ("POST".equals(method) && "/api/pagos/confirmar".equals(path)) {
             return true;
         }

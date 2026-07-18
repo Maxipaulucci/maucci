@@ -34,6 +34,16 @@ public class NegocioData {
      */
     private String mercadoPagoAccessToken;
 
+    /**
+     * Método de pago activo en la web pública: NINGUNO | TRANSFERENCIA | MERCADO_PAGO.
+     */
+    private String metodoPago = "NINGUNO";
+
+    /** Datos de transferencia bancaria (opción 1). */
+    private String pagoAlias;
+    private String pagoCvuCbu;
+    private String pagoTitular;
+
     /** Datos públicos para la web del cliente y locales adheridos. */
     private PerfilPublicoData perfilPublico;
     
@@ -122,6 +132,10 @@ public class NegocioData {
         private String usuarioNombre;
         private String usuarioApellido;
         private Boolean pagado = false;
+        /** Comprobante de transferencia (base64, sin prefijo data:). */
+        private String comprobantePago;
+        private String comprobanteNombre;
+        private String comprobanteContentType;
         private LocalDateTime fechaCreacion = LocalDateTime.now();
     }
     

@@ -78,6 +78,10 @@ public class MercadoPagoService {
             String frontBaseUrlOverride) {
 
         String codigo = establecimiento.toLowerCase().trim();
+        NegocioData negocioPago = negocioDataService.getOrCreate(codigo);
+        if (!"MERCADO_PAGO".equals(negocioDataService.resolveMetodoPago(negocioPago))) {
+            throw new IllegalStateException("Este negocio no tiene Mercado Pago como método de pago activo");
+        }
         String accessToken = negocioDataService.findMercadoPagoAccessToken(codigo)
                 .orElseThrow(() -> new IllegalStateException(
                         "Este negocio aún no configuró Mercado Pago"));
