@@ -375,10 +375,15 @@ const UserProfileModal = ({ isOpen, onClose }) => {
                             {!pagado && (
                               <button
                                 type="button"
-                                className="btn-pagar-turno user-historial-pagar-btn"
+                                className="btn-mercadopago user-historial-pagar-btn"
                                 onClick={() => handlePagarTurno(item)}
                                 disabled={payingReservaId === item.id}
                               >
+                                <img
+                                  src="/assets/img/logos_genericos/mercadoPago.png"
+                                  alt=""
+                                  className="btn-mercadopago-logo"
+                                />
                                 <span>{payingReservaId === item.id ? 'Cargando...' : 'Pagar'}</span>
                               </button>
                             )}

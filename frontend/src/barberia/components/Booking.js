@@ -436,19 +436,17 @@ const Booking = () => {
             {(esTransferencia || esMercadoPago) && !pagoConfirmado && (
               <button
                 type="button"
-                className={`btn ${esMercadoPago ? 'btn-mercadopago' : 'btn-pagar-turno'}`}
+                className="btn btn-mercadopago"
                 onClick={handlePagar}
                 disabled={isPaying}
               >
-                {esMercadoPago && (
-                  <img
-                    src="/assets/img/logos_genericos/mercadoPago.png"
-                    alt=""
-                    className="btn-mercadopago-logo"
-                  />
-                )}
+                <img
+                  src="/assets/img/logos_genericos/mercadoPago.png"
+                  alt=""
+                  className="btn-mercadopago-logo"
+                />
                 <span>
-                  {isPaying ? 'Redirigiendo...' : 'Pagar'}
+                  {isPaying ? (esMercadoPago ? 'Redirigiendo...' : 'Cargando...') : 'Pagar'}
                 </span>
               </button>
             )}
