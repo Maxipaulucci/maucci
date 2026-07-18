@@ -14,6 +14,8 @@ import com.maxturnos.service.EmailService;
 import com.maxturnos.service.NegocioDataService;
 import com.maxturnos.service.ReservaService;
 import com.maxturnos.model.NegocioData;
+import com.maxturnos.security.JwtUserPrincipal;
+import com.maxturnos.security.SecurityUtils;
 import com.maxturnos.util.FechaUtil;
 import com.maxturnos.util.ModelConverter;
 import jakarta.validation.Valid;
@@ -32,6 +34,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/reservas")
@@ -160,7 +163,7 @@ public class ReservaController {
                         "%s\n\n" +
                         "Te esperamos en %s.\n\n" +
                         "Saludos cordiales,\n" +
-                        "Equipo Maxturnos",
+                        "Maucci",
                         nombreCliente,
                         fechaFormateada,
                         reservaFinal.getHora(),
@@ -273,6 +276,23 @@ public class ReservaController {
                 .body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @GetMapping("/activa")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> obtenerReservaActiva(
+            @RequestParam String email) {
+        try {
+            Optional<Map<String, Object>> activa = reservaService.findReservaActivaByEmail(email);
+            if (activa.isPresent()) {
+                return ResponseEntity.ok(ApiResponse.success(activa.get()));
+            }
+            Map<String, Object> data = new HashMap<>();
+            data.put("tieneActiva", false);
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Error al consultar reserva activa: " + e.getMessage()));
+        }
+    }
     
     @GetMapping
     public ResponseEntity<ApiResponse<List<Reserva>>> obtenerReservas(
@@ -359,16 +379,51 @@ public class ReservaController {
             @RequestParam String establecimiento,
             @RequestBody(required = false) CancelarReservaRequest request) {
         try {
+            JwtUserPrincipal principal = SecurityUtils.currentUser();
+            if (principal == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Debés iniciar sesión para cancelar un turno"));
+            }
+
             // Buscar la reserva en las reservas activas
             List<NegocioData.ReservaData> reservas = negocioDataService.getReservas(establecimiento);
             NegocioData.ReservaData reservaData = reservas.stream()
                 .filter(r -> r.getId().equals(id))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
+                .orElse(null);
+
+            if (reservaData == null) {
+                // Ya no está activa: limpiar el historial del usuario autenticado si aplica
+                if (principal.getEmail() != null) {
+                    usuarioRepository.findByEmail(principal.getEmail().trim()).ifPresent(usuario -> {
+                        if (usuario.getHistorialReservas() != null) {
+                            boolean removed = usuario.getHistorialReservas().removeIf(h -> id.equals(h.getId()));
+                            if (removed) {
+                                usuarioRepository.save(usuario);
+                            }
+                        }
+                    });
+                }
+                return ResponseEntity.ok(ApiResponse.success("Reserva cancelada exitosamente"));
+            }
             
             Reserva reserva = ModelConverter.reservaDataToReserva(reservaData, establecimiento);
+
+            String negocioNorm = establecimiento == null ? ""
+                : establecimiento.trim().toLowerCase().replaceAll("\\s+", "_");
+            boolean esAdminDelNegocio = principal.isSuperAdmin()
+                || (principal.isAdmin() && principal.getNombreNegocio() != null
+                    && principal.getNombreNegocio().equalsIgnoreCase(negocioNorm));
+            boolean esDuenoDelTurno = reserva.getUsuarioEmail() != null
+                && principal.getEmail() != null
+                && principal.getEmail().equalsIgnoreCase(reserva.getUsuarioEmail().trim());
+
+            if (!esAdminDelNegocio && !esDuenoDelTurno) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("No tenés permiso para cancelar esta reserva"));
+            }
             
-            // Si hay una nota, enviar email al cliente
+            // Si hay una nota (típicamente cancelación desde el panel), enviar email al cliente
             if (request != null && request.getNota() != null && !request.getNota().trim().isEmpty()) {
                 String nombreCliente = reserva.getUsuarioNombre() != null && reserva.getUsuarioApellido() != null
                     ? reserva.getUsuarioNombre() + " " + reserva.getUsuarioApellido()
@@ -396,9 +451,18 @@ public class ReservaController {
             }
             
             // Eliminar la reserva de la base de datos
-            // Al eliminar la reserva, el horario queda automáticamente disponible
-            // para que otros usuarios puedan reservarlo nuevamente
+            // Al eliminar la reserva, el horario y el profesional quedan automáticamente disponibles
             negocioDataService.removeReserva(establecimiento, id);
+
+            // Quitar del historial del usuario para que no figure como turno activo
+            if (reserva.getUsuarioEmail() != null && !reserva.getUsuarioEmail().isBlank()) {
+                usuarioRepository.findByEmail(reserva.getUsuarioEmail().trim()).ifPresent(usuario -> {
+                    if (usuario.getHistorialReservas() != null) {
+                        usuario.getHistorialReservas().removeIf(h -> id.equals(h.getId()));
+                        usuarioRepository.save(usuario);
+                    }
+                });
+            }
             
             return ResponseEntity.ok(ApiResponse.success("Reserva cancelada exitosamente"));
         } catch (Exception e) {

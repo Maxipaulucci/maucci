@@ -3,8 +3,11 @@ package com.maxturnos.service;
 import com.maxturnos.model.Negocio;
 import com.maxturnos.model.Reserva;
 import com.maxturnos.model.NegocioData;
+import com.maxturnos.model.Usuario;
+import com.maxturnos.util.FechaUtil;
 import com.maxturnos.util.ModelConverter;
 import com.maxturnos.repository.NegocioRepository;
+import com.maxturnos.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,13 +22,16 @@ public class ReservaService {
     private final NegocioDataService negocioDataService;
     private final NegocioRepository negocioRepository;
     private final HorarioBloqueadoService horarioBloqueadoService;
+    private final UsuarioRepository usuarioRepository;
     
     public ReservaService(NegocioDataService negocioDataService,
                           NegocioRepository negocioRepository,
-                          HorarioBloqueadoService horarioBloqueadoService) {
+                          HorarioBloqueadoService horarioBloqueadoService,
+                          UsuarioRepository usuarioRepository) {
         this.negocioDataService = negocioDataService;
         this.negocioRepository = negocioRepository;
         this.horarioBloqueadoService = horarioBloqueadoService;
+        this.usuarioRepository = usuarioRepository;
     }
     
     public List<String> calcularHorariosBloqueados(String horaInicio, Integer duracionMinutos, Integer intervalo) {
@@ -80,6 +86,14 @@ public class ReservaService {
     
     @Transactional
     public Reserva crearReserva(Reserva reserva) {
+        if (reserva.getUsuarioEmail() != null && !reserva.getUsuarioEmail().isBlank()) {
+            Optional<Map<String, Object>> activa = findReservaActivaByEmail(reserva.getUsuarioEmail());
+            if (activa.isPresent()) {
+                throw new IllegalStateException(
+                    "Ya tenés un turno activo. Solo podés reservar otro cuando ese turno haya pasado.");
+            }
+        }
+
         // Obtener configuración del negocio (global o desde NegocioData)
         Negocio negocio = negocioDataService.getNegocioConfig(reserva.getEstablecimiento());
         
@@ -471,6 +485,59 @@ public class ReservaService {
         resultado.put("reservas", reservas);
         
         return resultado;
+    }
+
+    /**
+     * Busca si el usuario tiene alguna reserva activa (aún no finalizada) en cualquier negocio.
+     */
+    public Optional<Map<String, Object>> findReservaActivaByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return Optional.empty();
+        }
+        String emailNorm = email.toLowerCase().trim();
+
+        Set<String> codigos = new LinkedHashSet<>();
+        List<Negocio> negocios = negocioRepository.findByActivoTrue();
+        if (negocios != null) {
+            for (Negocio n : negocios) {
+                if (n.getCodigo() != null && !n.getCodigo().isBlank()) {
+                    codigos.add(n.getCodigo().toLowerCase().trim());
+                }
+            }
+        }
+        usuarioRepository.findByEmail(emailNorm).ifPresent(usuario -> {
+            List<Usuario.ReservaEnHistorial> historial = usuario.getHistorialReservas();
+            if (historial == null) return;
+            for (Usuario.ReservaEnHistorial item : historial) {
+                if (item.getEstablecimiento() != null && !item.getEstablecimiento().isBlank()) {
+                    codigos.add(item.getEstablecimiento().toLowerCase().trim());
+                }
+            }
+        });
+
+        for (String codigo : codigos) {
+            List<NegocioData.ReservaData> reservas = negocioDataService.getReservas(codigo);
+            if (reservas == null) continue;
+            for (NegocioData.ReservaData r : reservas) {
+                if (r.getUsuarioEmail() == null || !emailNorm.equalsIgnoreCase(r.getUsuarioEmail().trim())) {
+                    continue;
+                }
+                if (r.getFecha() == null || r.getHora() == null) continue;
+                if (FechaUtil.reservaAunVigente(r.getFecha(), r.getHora(), r.getDuracionMinutos())) {
+                    Map<String, Object> data = new LinkedHashMap<>();
+                    data.put("tieneActiva", true);
+                    data.put("id", r.getId());
+                    data.put("establecimiento", codigo);
+                    data.put("fecha", r.getFecha());
+                    data.put("hora", r.getHora());
+                    data.put("servicioNombre", r.getServicio() != null ? r.getServicio().getName() : null);
+                    data.put("profesionalNombre", r.getProfesional() != null ? r.getProfesional().getName() : null);
+                    return Optional.of(data);
+                }
+            }
+        }
+
+        return Optional.empty();
     }
     
 }

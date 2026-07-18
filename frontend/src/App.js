@@ -6,6 +6,7 @@ import NavBar from './components/negocio/NavBar';
 import { useScrollToTop } from './hooks/useScrollToTop';
 import { useAuth } from './context/AuthContext';
 import NegocioNoEncontrado from './components/shared/NegocioNoEncontrado';
+import TurnosInfoTip from './components/shared/TurnosInfoTip';
 
 // Páginas de Maucci (inicio)
 import MaxturnosHome from './maxturnos/pages/Home';
@@ -143,6 +144,7 @@ function App() {
   return (
     <Router>
       <AppContent />
+      <TurnosInfoTip />
     </Router>
   );
 }

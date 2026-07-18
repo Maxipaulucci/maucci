@@ -161,6 +161,11 @@ const parseDuration = (duration) => {
 
 // Servicios de reservas
 export const reservasService = {
+  // Obtener si el usuario tiene una reserva activa (aún no pasada)
+  tieneReservaActiva: async (email) => {
+    return await fetchAPI(`/reservas/activa?email=${encodeURIComponent(email)}`);
+  },
+
   // Crear nueva reserva
   crearReserva: async (reservaData) => {
     return await fetchAPI('/reservas', {

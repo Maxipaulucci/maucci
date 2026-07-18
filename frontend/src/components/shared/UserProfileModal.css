@@ -196,6 +196,31 @@
   cursor: not-allowed;
 }
 
+.user-historial-cancelar-btn {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 0.35rem;
+  min-height: 2.4rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #c45c5c;
+  background: transparent;
+  color: #b03a3a;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.user-historial-cancelar-btn:hover:not(:disabled) {
+  background-color: rgba(176, 58, 58, 0.08);
+}
+
+.user-historial-cancelar-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .user-historial-volver {
   margin-top: auto;
 }
@@ -474,6 +499,14 @@
   color: var(--text-secondary);
   margin-bottom: var(--spacing-xl);
   line-height: 1.5;
+}
+
+.user-cancelar-turno-detalle {
+  margin: calc(var(--spacing-md) * -0.5) 0 var(--spacing-xl);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .user-delete-modal-actions {

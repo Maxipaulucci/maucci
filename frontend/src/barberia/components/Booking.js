@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaCheck } from 'react-icons/fa';
 import { timeSlots } from '../data/sampleData';
 import { reservasService, negociosService, personalService, servicioService, diasCanceladosService, pagosService } from '../../services/api';
@@ -8,13 +8,15 @@ import { useAuth } from '../../context/AuthContext';
 import { useEstablecimiento } from '../../context/EstablecimientoContext';
 import { scrollToTop } from '../../hooks/useScrollToTop';
 import TransferPaymentModal from '../../components/shared/TransferPaymentModal';
+import ReservaActivaModal from '../../components/shared/ReservaActivaModal';
 import { fechaCalendarioDesdeApi, formatearFechaYYYYMMDD, hoyYYYYMMDDEnNegocio } from '../../utils/fecha';
 import './Booking.css';
 
 const Booking = () => {
   const { user } = useAuth();
   const location = useLocation();
-  const { codigo: establecimiento } = useEstablecimiento();
+  const navigate = useNavigate();
+  const { codigo: establecimiento, basePath } = useEstablecimiento();
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -52,6 +54,10 @@ const Booking = () => {
   const [createdReservaId, setCreatedReservaId] = useState(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [pagoConfirmado, setPagoConfirmado] = useState(false);
+  const [tieneReservaActiva, setTieneReservaActiva] = useState(false);
+  const [reservaActivaInfo, setReservaActivaInfo] = useState(null);
+  const [showReservaActivaModal, setShowReservaActivaModal] = useState(false);
+  const [avisoReservaActivaMostrado, setAvisoReservaActivaMostrado] = useState(false);
 
   // Al confirmar o cambiar de paso, subir al inicio
   useEffect(() => {
@@ -80,6 +86,44 @@ const Booking = () => {
       description: s.descripcion
     }));
   };
+
+  // Verificar si el usuario ya tiene un turno activo
+  useEffect(() => {
+    const verificarReservaActiva = async () => {
+      if (!user?.email) {
+        setTieneReservaActiva(false);
+        setReservaActivaInfo(null);
+        return;
+      }
+      try {
+        const res = await reservasService.tieneReservaActiva(user.email);
+        const data = res?.data ?? res;
+        const activa = !!data?.tieneActiva;
+        setTieneReservaActiva(activa);
+        setReservaActivaInfo(activa ? data : null);
+      } catch (err) {
+        console.error('Error al verificar reserva activa:', err);
+        setTieneReservaActiva(false);
+        setReservaActivaInfo(null);
+      }
+    };
+    verificarReservaActiva();
+  }, [user?.email]);
+
+  const avisarSiTieneReservaActiva = () => {
+    if (tieneReservaActiva && !avisoReservaActivaMostrado) {
+      setShowReservaActivaModal(true);
+      setAvisoReservaActivaMostrado(true);
+    }
+  };
+
+  // Si entró con ?service= o ya avanzó de paso, avisar cuando se detecta turno activo
+  useEffect(() => {
+    if (tieneReservaActiva && step >= 2) {
+      avisarSiTieneReservaActiva();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tieneReservaActiva, step]);
 
   // Cargar personal y servicios en paralelo; usar caché de barbería si existe para mostrar al instante
   useEffect(() => {
@@ -250,6 +294,7 @@ const Booking = () => {
   }, [diasDisponibles, horaCierre]);
 
   const handleServiceSelect = (service) => {
+    avisarSiTieneReservaActiva();
     setSelectedService(service);
     setStep(2);
   };
@@ -310,6 +355,12 @@ const Booking = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (tieneReservaActiva) {
+      setError('No podés confirmar: ya tenés un turno activo.');
+      setShowReservaActivaModal(true);
+      return;
+    }
     
     if (!user || !user.email) {
       setError('Debes iniciar sesión para realizar una reserva');
@@ -345,19 +396,9 @@ const Booking = () => {
     }
   };
 
-  const resetBooking = () => {
-    setStep(1);
-    setSelectedService(null);
-    setSelectedDate('');
-    setSelectedTime('');
-    setSelectedBarber(null);
-    setCustomerInfo({ notes: '' });
-    setIsSubmitted(false);
-    setPagoError('');
-    setIsPaying(false);
-    setCreatedReservaId(null);
-    setShowTransferModal(false);
-    setPagoConfirmado(false);
+  const volverAInicio = () => {
+    navigate(basePath);
+    scrollToTop();
   };
 
   const metodoPago = establecimientoConfig?.metodoPago || 'NINGUNO';
@@ -430,8 +471,8 @@ const Booking = () => {
             <div className="booking-pago-ok">Pago confirmado. Gracias.</div>
           )}
           <div className="success-actions">
-            <button onClick={resetBooking} className="btn btn-primary">
-              Hacer Nueva Reserva
+            <button type="button" onClick={volverAInicio} className="btn btn-primary">
+              Volver a inicio
             </button>
             {(esTransferencia || esMercadoPago) && !pagoConfirmado && (
               <button
@@ -459,6 +500,11 @@ const Booking = () => {
           reservaId={createdReservaId}
           pagoTransferencia={establecimientoConfig?.pagoTransferencia}
           onSuccess={() => setPagoConfirmado(true)}
+        />
+        <ReservaActivaModal
+          isOpen={showReservaActivaModal}
+          onClose={() => setShowReservaActivaModal(false)}
+          reservaActiva={reservaActivaInfo}
         />
       </div>
     );
@@ -685,6 +731,13 @@ const Booking = () => {
                   </div>
                 </div>
 
+                {tieneReservaActiva && (
+                  <div className="booking-reserva-activa-bloqueada">
+                    No podés confirmar esta reserva porque ya tenés un turno activo.
+                    Cuando ese turno haya pasado, vas a poder reservar de nuevo.
+                  </div>
+                )}
+
                 <div className="form-actions">
                   <button 
                     type="button"
@@ -693,7 +746,12 @@ const Booking = () => {
                   >
                     Volver
                   </button>
-                  <button type="submit" className="btn btn-primary">
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={tieneReservaActiva}
+                    title={tieneReservaActiva ? 'Tenés un turno activo' : undefined}
+                  >
                     Confirmar Reserva
                   </button>
                 </div>
@@ -702,6 +760,11 @@ const Booking = () => {
           )}
         </div>
       </div>
+      <ReservaActivaModal
+        isOpen={showReservaActivaModal}
+        onClose={() => setShowReservaActivaModal(false)}
+        reservaActiva={reservaActivaInfo}
+      />
     </section>
   );
 };

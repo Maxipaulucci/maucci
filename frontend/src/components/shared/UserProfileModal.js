@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaLock, FaSignOutAlt, FaEye, FaEyeSlash, FaTrash, FaHistory } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
-import { authService, negociosService, pagosService } from '../../services/api';
+import { authService, negociosService, pagosService, reservasService } from '../../services/api';
 import TransferPaymentModal from './TransferPaymentModal';
 import { fechaCalendarioDesdeApi } from '../../utils/fecha';
 import './UserProfileModal.css';
@@ -49,6 +49,8 @@ const UserProfileModal = ({ isOpen, onClose }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [payingReservaId, setPayingReservaId] = useState(null);
+  const [cancellingReservaId, setCancellingReservaId] = useState(null);
+  const [turnoACancelar, setTurnoACancelar] = useState(null);
   const [pagoPorEstablecimiento, setPagoPorEstablecimiento] = useState({});
   const [transferModal, setTransferModal] = useState({
     open: false,
@@ -63,6 +65,7 @@ const UserProfileModal = ({ isOpen, onClose }) => {
       setShowChangePassword(false);
       setShowHistorial(false);
       setShowDeleteConfirm(false);
+      setTurnoACancelar(null);
       setPasswordData({ currentPassword: '', newPassword: '', repeatPassword: '' });
       setShowCurrentPassword(false);
       setShowNewPassword(false);
@@ -178,6 +181,41 @@ const UserProfileModal = ({ isOpen, onClose }) => {
       console.error('Error al iniciar pago desde historial:', err);
       setError(err.message || 'No se pudo iniciar el pago. Intentá de nuevo.');
       setPayingReservaId(null);
+    }
+  };
+
+  const handleCancelarTurno = (item) => {
+    if (!item?.id || !item?.establecimiento) {
+      setError('No se puede cancelar este turno');
+      return;
+    }
+    setError('');
+    setTurnoACancelar(item);
+  };
+
+  const cerrarConfirmacionCancelar = () => {
+    if (cancellingReservaId) return;
+    setTurnoACancelar(null);
+  };
+
+  const confirmarCancelarTurno = async () => {
+    if (!turnoACancelar?.id || !turnoACancelar?.establecimiento) return;
+
+    setError('');
+    setCancellingReservaId(turnoACancelar.id);
+    try {
+      await reservasService.cancelarReserva(
+        turnoACancelar.id,
+        null,
+        turnoACancelar.establecimiento
+      );
+      setHistorial((prev) => prev.filter((h) => h.id !== turnoACancelar.id));
+      setTurnoACancelar(null);
+    } catch (err) {
+      console.error('Error al cancelar turno desde historial:', err);
+      setError(err.message || 'No se pudo cancelar el turno. Intentá de nuevo.');
+    } finally {
+      setCancellingReservaId(null);
     }
   };
 
@@ -358,8 +396,9 @@ const UserProfileModal = ({ isOpen, onClose }) => {
               ) : (
                 <ul className="user-historial-list">
                   {historial.map((item) => {
+                    const turnoVigente = esTurnoVigenteParaPago(item.fecha);
                     const mostrarPago =
-                      esTurnoVigenteParaPago(item.fecha) && negocioPermitePago(item.establecimiento);
+                      turnoVigente && negocioPermitePago(item.establecimiento);
                     const pagado = item.pagado === true;
                     return (
                       <li key={item.id || `${item.establecimiento}-${item.fecha}-${item.hora}`} className="user-historial-item">
@@ -377,7 +416,7 @@ const UserProfileModal = ({ isOpen, onClose }) => {
                                 type="button"
                                 className="btn-mercadopago user-historial-pagar-btn"
                                 onClick={() => handlePagarTurno(item)}
-                                disabled={payingReservaId === item.id}
+                                disabled={payingReservaId === item.id || cancellingReservaId === item.id}
                               >
                                 <img
                                   src="/assets/img/logos_genericos/mercadoPago.png"
@@ -388,6 +427,16 @@ const UserProfileModal = ({ isOpen, onClose }) => {
                               </button>
                             )}
                           </>
+                        )}
+                        {turnoVigente && item.id && (
+                          <button
+                            type="button"
+                            className="user-historial-cancelar-btn"
+                            onClick={() => handleCancelarTurno(item)}
+                            disabled={cancellingReservaId === item.id || payingReservaId === item.id}
+                          >
+                            {cancellingReservaId === item.id ? 'Cancelando...' : 'Cancelar'}
+                          </button>
                         )}
                       </li>
                     );
@@ -606,6 +655,44 @@ const UserProfileModal = ({ isOpen, onClose }) => {
                 disabled={isDeleting}
               >
                 {isDeleting ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación para cancelar turno */}
+      {turnoACancelar && (
+        <div className="user-delete-modal-overlay" onClick={cerrarConfirmacionCancelar}>
+          <div className="user-delete-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="user-delete-modal-title">¿Cancelar este turno?</h3>
+            <p className="user-delete-modal-message">
+              El horario volverá a estar disponible. Esta acción no se puede deshacer.
+            </p>
+            {(turnoACancelar.fecha || turnoACancelar.hora) && (
+              <p className="user-cancelar-turno-detalle">
+                {formatFecha(turnoACancelar.fecha)}
+                {turnoACancelar.hora ? ` · ${turnoACancelar.hora}` : ''}
+                {turnoACancelar.servicioNombre ? ` · ${turnoACancelar.servicioNombre}` : ''}
+              </p>
+            )}
+            {error && <div className="profile-message error">{error}</div>}
+            <div className="user-delete-modal-actions">
+              <button
+                type="button"
+                className="btn-user-delete btn-user-delete-cancel"
+                onClick={cerrarConfirmacionCancelar}
+                disabled={!!cancellingReservaId}
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                className="btn-user-delete btn-user-delete-confirm"
+                onClick={confirmarCancelarTurno}
+                disabled={!!cancellingReservaId}
+              >
+                {cancellingReservaId ? 'Cancelando...' : 'Confirmar cancelación'}
               </button>
             </div>
           </div>

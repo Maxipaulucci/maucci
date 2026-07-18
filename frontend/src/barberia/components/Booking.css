@@ -556,6 +556,23 @@
   margin-bottom: 0.65rem;
 }
 
+.booking-reserva-activa-bloqueada {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.booking-form .btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .booking-pago-error {
   background: #fef2f2;
   color: #b91c1c;

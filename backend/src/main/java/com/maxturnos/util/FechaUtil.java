@@ -47,4 +47,29 @@ public final class FechaUtil {
         cal.setTime(date);
         return cal;
     }
+
+    /**
+     * Une día de calendario + "HH:mm" (+ duración opcional) en un instante en zona Argentina.
+     */
+    public static Date finReserva(Date fechaDia, String hora, Integer duracionMinutos) {
+        Calendar cal = calendarEnZonaNegocio(fechaDia);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        if (hora != null && hora.contains(":")) {
+            String[] partes = hora.trim().split(":");
+            cal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(partes[0]));
+            cal.set(Calendar.MINUTE, Integer.parseInt(partes[1]));
+        }
+        if (duracionMinutos != null && duracionMinutos > 0) {
+            cal.add(Calendar.MINUTE, duracionMinutos);
+        }
+        return cal.getTime();
+    }
+
+    public static boolean reservaAunVigente(Date fechaDia, String hora, Integer duracionMinutos) {
+        Date fin = finReserva(fechaDia, hora, duracionMinutos);
+        return fin.after(new Date());
+    }
 }

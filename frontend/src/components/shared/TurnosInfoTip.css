@@ -1,0 +1,116 @@
+.turnos-info-tip-btn {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 9000;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  transition: color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.turnos-info-tip-btn:hover {
+  color: #4b5563;
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+}
+
+.turnos-info-tip-btn:focus-visible {
+  outline: 2px solid var(--primary-color, #3b82f6);
+  outline-offset: 2px;
+}
+
+.turnos-info-tip-icon {
+  font-size: 2.75rem;
+  display: block;
+  background: #fff;
+  border-radius: 50%;
+}
+
+.turnos-info-tip-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md, 1rem);
+}
+
+.turnos-info-tip-modal {
+  background-color: white;
+  border-radius: 12px;
+  padding: var(--spacing-xl, 1.5rem);
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.turnos-info-tip-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0 0 var(--spacing-md, 1rem);
+}
+
+.turnos-info-tip-message {
+  color: var(--text-secondary, #4b5563);
+  margin: 0 0 var(--spacing-xl, 1.5rem);
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+.turnos-info-tip-historial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin: 0 0.15rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+  background: var(--bg-secondary, #f3f4f6);
+  color: var(--text-secondary, #4b5563);
+}
+
+.turnos-info-tip-historial-icon {
+  font-size: 1.05rem;
+  display: block;
+}
+
+.turnos-info-tip-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.turnos-info-tip-entendido {
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-lg, 1.25rem);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: var(--primary-color, #3b82f6);
+  color: white;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.turnos-info-tip-entendido:hover {
+  opacity: 0.92;
+}
+
+@media (max-width: 480px) {
+  .turnos-info-tip-btn {
+    left: 0.75rem;
+    bottom: 0.75rem;
+  }
+}

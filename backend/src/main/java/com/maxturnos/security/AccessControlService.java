@@ -43,6 +43,10 @@ public class AccessControlService {
             return true;
         }
 
+        if ("GET".equals(method) && "/api/reservas/activa".equals(path)) {
+            return true;
+        }
+
         if ("GET".equals(method) && "/api/reservas/horarios-disponibles".equals(path)) {
             return true;
         }
@@ -104,6 +108,11 @@ public class AccessControlService {
         }
 
         if ("/api/resenas".equals(path) && "POST".equals(method)) {
+            return true;
+        }
+
+        // Cancelar turno propio: la titularidad se valida en el controller
+        if ("DELETE".equals(method) && path.matches("/api/reservas/[^/]+")) {
             return true;
         }
 

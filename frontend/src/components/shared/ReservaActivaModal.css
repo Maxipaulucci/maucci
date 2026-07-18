@@ -1,0 +1,58 @@
+.reserva-activa-modal {
+  max-width: 420px;
+  padding: 1.1rem 1.2rem 0.6rem !important;
+  position: relative;
+}
+
+.reserva-activa-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.65rem;
+  z-index: 1;
+}
+
+.reserva-activa-modal .modal-body {
+  padding: 0;
+  padding-right: 1.5rem;
+  margin-bottom: 0 !important;
+}
+
+.reserva-activa-aviso {
+  margin: 0 0 0.75rem;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
+  line-height: 1.4;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.reserva-activa-detalle {
+  margin: 0 0 0.6rem;
+  color: #374151;
+  line-height: 1.4;
+  font-size: 0.9rem;
+}
+
+.reserva-activa-hint {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.reserva-activa-modal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  margin-bottom: 0 !important;
+  padding-top: 0.85rem;
+  padding-bottom: 0 !important;
+  border-top: 1px solid #e5e7eb;
+}
+
+.reserva-activa-modal .modal-footer .btn {
+  margin: 0;
+}
