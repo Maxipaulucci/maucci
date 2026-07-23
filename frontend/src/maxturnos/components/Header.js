@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaBars, FaTimes, FaEnvelope, FaInstagram } from 'react-icons/fa';
+import { FaBars, FaTimes, FaEnvelope } from 'react-icons/fa';
 import { maxturnosInfo } from '../data/maxturnosData';
 import { scrollToTop } from '../../hooks/useScrollToTop';
 import { useAuth } from '../../context/AuthContext';
@@ -36,15 +36,10 @@ const MaxturnosHeader = () => {
       <div className="header-top">
         <div className="container">
           <div className="header-info">
-            <div className="header-contact-group">
-              <a href={`https://instagram.com/${maxturnosInfo.instagram}`} target="_blank" rel="noopener noreferrer" className="header-contact-item" aria-label="Instagram">
-                <FaInstagram className="header-contact-icon" aria-hidden="true" />
-              </a>
-              <button type="button" className="header-contact-item" onClick={openContactModal} aria-label="Enviar consulta">
-                <FaEnvelope className="header-contact-icon" aria-hidden="true" />
-                <span>{maxturnosInfo.email}</span>
-              </button>
-            </div>
+            <button type="button" className="header-contact-item" onClick={openContactModal} aria-label="Enviar consulta">
+              <FaEnvelope className="header-contact-icon" aria-hidden="true" />
+              <span>{maxturnosInfo.email}</span>
+            </button>
             <div className="user-logo" onClick={() => {
               if (isAuthenticated()) {
                 setIsProfileModalOpen(true);

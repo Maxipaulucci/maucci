@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaBars, FaTimes, FaEnvelope } from 'react-icons/fa';
 import { maxturnosInfo } from '../../maxturnos/data/maxturnosData';
@@ -38,13 +38,13 @@ const Header = () => {
     setIsMenuOpen(false);
   };
 
-  const aplicarHorariosDesdeNegocio = (negocio) => {
+  const aplicarHorariosDesdeNegocio = useCallback((negocio) => {
     if (negocio) {
       setLineasHorarios(obtenerLineasHorarios(negocio));
     }
-  };
+  }, []);
 
-  const cargarHorariosNegocio = async () => {
+  const cargarHorariosNegocio = useCallback(async () => {
     const cached = barberiaCache.getNegocio(codigo);
     if (cached) {
       aplicarHorariosDesdeNegocio(cached);
@@ -62,7 +62,7 @@ const Header = () => {
         setLineasHorarios(['No se pudieron cargar los horarios']);
       }
     }
-  };
+  }, [codigo, aplicarHorariosDesdeNegocio]);
 
   // Prefetch datos del negocio y horarios reales desde el panel
   useEffect(() => {
@@ -83,7 +83,7 @@ const Header = () => {
       const data = r.data ?? r;
       if (data && Array.isArray(data)) barberiaCache.setResenas(codigo, data);
     }).catch(() => {});
-  }, [location.pathname, codigo]);
+  }, [location.pathname, codigo, cargarHorariosNegocio]);
 
   const abrirModalHorarios = () => {
     setIsHorariosModalOpen(true);

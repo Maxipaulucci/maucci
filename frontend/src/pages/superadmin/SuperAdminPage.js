@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { superadminService } from '../../services/api';
 import './SuperAdminPage.css';
@@ -20,7 +20,7 @@ export default function SuperAdminPage() {
   const [eliminandoId, setEliminandoId] = useState(null);
   const [guardandoId, setGuardandoId] = useState(null);
 
-  const loadListado = async (withDetails = false) => {
+  const loadListado = useCallback(async (withDetails = false) => {
     if (!user?.email) return;
     setLoading(true);
     try {
@@ -39,15 +39,15 @@ export default function SuperAdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.email]);
 
   useEffect(() => {
     if (view === VIEW_ELIMINAR && user?.email) loadListado(false);
-  }, [view, user?.email]);
+  }, [view, user?.email, loadListado]);
 
   useEffect(() => {
     if (view === VIEW_MODIFICAR && user?.email) loadListado(true);
-  }, [view, user?.email]);
+  }, [view, user?.email, loadListado]);
 
   const handleAceptarAgregar = async (e) => {
     e.preventDefault();

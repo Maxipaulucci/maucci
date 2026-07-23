@@ -102,7 +102,7 @@ const MaxturnosHero = () => {
                     </div>
                     <div className="dashboard-stat">
                       <span className="stat-label">Ingresos</span>
-                      <span className="stat-value">$45.000</span>
+                      <span className="stat-value">$135.000</span>
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { useAuth } from '../../context/AuthContext';
@@ -57,20 +57,20 @@ const Horarios = () => {
   const [profesionalSeleccionado, setProfesionalSeleccionado] = useState(null);
   const [esGeneral, setEsGeneral] = useState(false); // Indica si se seleccionó "General"
   const [horariosDisponibles, setHorariosDisponibles] = useState([]);
-  const [horariosBloqueados, setHorariosBloqueados] = useState([]);
+  const [, setHorariosBloqueados] = useState([]);
   const [horariosReservados, setHorariosReservados] = useState([]); // Slots con turno reservado (solo etiqueta "Reservado")
   const [horariosBloqueadosManualmente, setHorariosBloqueadosManualmente] = useState([]); // Slots bloqueados por el negocio (etiqueta "Bloqueado" + restaurar)
   const [horaLimite, setHoraLimite] = useState('20:00'); // Hora límite predeterminada
   const [horaMinima, setHoraMinima] = useState('08:00'); // Hora mínima predeterminada
   const [configuracionCargada, setConfiguracionCargada] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Loading para horarios
-  const [isLoadingCalendario, setIsLoadingCalendario] = useState(false); // Loading para calendario
+  const [isLoadingCalendario] = useState(false); // Loading para calendario
   const [error, setError] = useState('');
   const [horariosEliminados, setHorariosEliminados] = useState(new Set()); // Horarios eliminados localmente
   const [horaLimiteManual, setHoraLimiteManual] = useState(false); // Indica si el usuario cambió manualmente la hora límite
-  const [diaCancelado, setDiaCancelado] = useState(false); // Indica si el día seleccionado está cancelado
+  const [, setDiaCancelado] = useState(false); // Indica si el día seleccionado está cancelado
   const [diasCancelados, setDiasCancelados] = useState([]); // Lista de días cancelados
-  const [diaNoLaborable, setDiaNoLaborable] = useState(false); // Día bloqueado por defecto (ej. domingos)
+  const [, setDiaNoLaborable] = useState(false); // Día bloqueado por defecto (ej. domingos)
   const [domingosRestaurados, setDomingosRestaurados] = useState(new Set()); // Domingos restaurados manualmente para no bloquearlos
   const [reservasPorDia, setReservasPorDia] = useState({}); // Contador de reservas por día
   const [notification, setNotification] = useState(null); // Notificación para mostrar mensajes
@@ -267,7 +267,7 @@ const Horarios = () => {
   };
 
   // Función auxiliar para obtener la fecha activa (para modo 'dia' o primer día en modo 'dias' o 'mes')
-  const obtenerFechaActiva = () => {
+  const obtenerFechaActiva = useCallback(() => {
     if (modoSeleccion === 'dia' && selectedDate) {
       return selectedDate;
     }
@@ -281,14 +281,14 @@ const Horarios = () => {
       return diasOrdenados[0];
     }
     return null;
-  };
+  }, [modoSeleccion, selectedDate, diasSeleccionados, diaActivoMultiples]);
 
   // Función auxiliar para verificar si hay días seleccionados
-  const hayDiasSeleccionados = () => {
-    return (modoSeleccion === 'dia' && selectedDate) || 
+  const hayDiasSeleccionados = useCallback(() => {
+    return (modoSeleccion === 'dia' && selectedDate) ||
            (modoSeleccion === 'dias' && diasSeleccionados.length > 0) ||
            (modoSeleccion === 'mes' && diasSeleccionados.length > 0);
-  };
+  }, [modoSeleccion, selectedDate, diasSeleccionados]);
 
   // Parsear fecha YYYY-MM-DD o ISO string en zona local para evitar desfase a día anterior
   const parseFechaLocal = (fechaStr) => {
@@ -314,11 +314,6 @@ const Horarios = () => {
     return horas * 60 + minutos;
   };
 
-  // Función para comparar horas correctamente
-  const compararHoras = (hora1, hora2) => {
-    return horaAMinutos(hora1) - horaAMinutos(hora2);
-  };
-
   // Función para obtener la hora límite según el día de la semana
   const obtenerHoraLimiteSegunDia = (fecha) => {
     if (!fecha) return '20:00'; // Por defecto lunes a viernes
@@ -335,6 +330,31 @@ const Horarios = () => {
     // Domingo (0) también hasta las 20:00 por defecto
     return '20:00';
   };
+
+  // Función auxiliar para verificar si un día está cancelado
+  const esDiaCancelado = useCallback((fecha) => {
+    const fechaStr = formatearFecha(fecha);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fechaComparar = new Date(fecha);
+    fechaComparar.setHours(0, 0, 0, 0);
+    const esFuturoOHoy = fechaComparar >= hoy;
+
+    if (!esFuturoOHoy) return false;
+
+    // Verificar si es domingo no restaurado
+    const esDomingo = fecha.getDay() === 0 && !domingosRestaurados.has(fechaStr);
+    if (esDomingo) return true;
+
+    // Verificar si está en la lista de días cancelados
+    const estaEnListaCancelados = diasCancelados.some(d => {
+      const fechaCancelada = parseFechaLocal(d.fecha);
+      if (!fechaCancelada || isNaN(fechaCancelada.getTime())) return false;
+      return formatearFecha(fechaCancelada) === fechaStr;
+    });
+
+    return estaEnListaCancelados;
+  }, [domingosRestaurados, diasCancelados]);
 
   // Cargar configuración del negocio al iniciar
   useEffect(() => {
@@ -383,10 +403,10 @@ const Horarios = () => {
     };
     
     cargarConfiguracion();
-  }, []);
+  }, [establecimiento]);
 
   // Función auxiliar para regenerar la lista completa de días cancelados
-  const regenerarDiasCancelados = async () => {
+  const regenerarDiasCancelados = useCallback(async () => {
     try {
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
@@ -455,10 +475,10 @@ const Horarios = () => {
       console.error('Error al regenerar días cancelados:', err);
       setDiasCancelados([]);
     }
-  };
+  }, [establecimiento, date, domingosRestaurados]);
 
   // Función para cargar reservas del mes
-  const cargarReservasDelMes = async (fecha) => {
+  const cargarReservasDelMes = useCallback(async (fecha) => {
     try {
       const año = fecha.getFullYear();
       const mes = fecha.getMonth() + 1; // getMonth() devuelve 0-11
@@ -482,17 +502,232 @@ const Horarios = () => {
       console.error('Error al cargar reservas del mes:', err);
       setReservasPorDia({});
     }
-  };
+  }, [establecimiento]);
+
+  const cargarHorariosBloqueados = useCallback(async () => {
+    const fechaActiva = obtenerFechaActiva();
+    if (!fechaActiva || (!profesionalSeleccionado && !esGeneral)) return;
+
+    try {
+      const fechaStr = formatearFecha(fechaActiva);
+
+      if (esGeneral) {
+        // En modo General, no mostrar horarios bloqueados
+        // porque un horario solo está realmente bloqueado si TODOS los profesionales lo tienen ocupado
+        setHorariosBloqueados([]);
+        setHorariosEliminados(new Set());
+      } else {
+        const response = await horariosBloqueadosService.obtenerHorariosBloqueados(
+          establecimiento,
+          fechaStr,
+          profesionalSeleccionado.id
+        );
+
+        const bloqueados = response.data || response || [];
+        const horasBloqueadas = bloqueados.map(h => h.hora);
+
+        // Actualizar el set de horarios eliminados con los del servidor
+        setHorariosEliminados(new Set(horasBloqueadas));
+      }
+    } catch (err) {
+      console.error('Error al cargar horarios bloqueados:', err);
+    }
+  }, [obtenerFechaActiva, profesionalSeleccionado, esGeneral, establecimiento]);
+
+  const cargarHorariosDisponibles = useCallback(async () => {
+    const fechaActiva = obtenerFechaActiva();
+    if (!fechaActiva || (!profesionalSeleccionado && !esGeneral)) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Usar el primer servicio como referencia para obtener horarios
+      const servicio = services[0];
+
+      // Determinar fechas a procesar
+      let fechasAProcesar = [];
+      if ((modoSeleccion === 'dias' || modoSeleccion === 'mes') && diasSeleccionados.length > 0) {
+        // Filtrar días cancelados
+        fechasAProcesar = diasSeleccionados
+          .filter(dia => !esDiaCancelado(dia))
+          .map(dia => formatearFecha(dia));
+      } else {
+        fechasAProcesar = [formatearFecha(fechaActiva)];
+      }
+
+      if (fechasAProcesar.length === 0) {
+        setHorariosDisponibles([]);
+        setHorariosBloqueados([]);
+        setIsLoading(false);
+        return;
+      }
+
+      let horariosFiltrados = [];
+      let bloqueados = [];
+      let reservados = [];
+      let bloqueadosManualmente = [];
+
+      if (esGeneral) {
+        // Modo General: obtener horarios de todos los profesionales y todas las fechas, calcular intersección
+        const todasLasPromesas = [];
+
+        for (const fechaStr of fechasAProcesar) {
+          const promesasPorFecha = team.map(profesional =>
+            reservasService.obtenerHorariosDisponibles(
+              establecimiento,
+              fechaStr,
+              profesional.id,
+              servicio
+            )
+          );
+          todasLasPromesas.push(...promesasPorFecha);
+        }
+
+        const respuestas = await Promise.all(todasLasPromesas);
+
+        // Agrupar respuestas por fecha
+        const horariosPorFechaYProfesional = [];
+        let indice = 0;
+        for (let f = 0; f < fechasAProcesar.length; f++) {
+          const horariosPorProfesional = [];
+          for (let i = 0; i < team.length; i++) {
+            const resp = respuestas[indice];
+            horariosPorProfesional.push(resp.data?.horariosDisponibles || resp.horariosDisponibles || []);
+            indice++;
+          }
+          horariosPorFechaYProfesional.push(horariosPorProfesional);
+        }
+
+        // Calcular intersección: horarios disponibles para TODOS los profesionales en TODAS las fechas
+        if (horariosPorFechaYProfesional.length > 0) {
+          // Empezar con los horarios de la primera fecha y primer profesional
+          let horariosComunes = new Set(horariosPorFechaYProfesional[0][0]);
+
+          // Intersectar con todos los profesionales de todas las fechas
+          for (const horariosPorProfesional of horariosPorFechaYProfesional) {
+            for (const horariosProf of horariosPorProfesional) {
+              const horariosProfSet = new Set(horariosProf);
+              horariosComunes = new Set([...horariosComunes].filter(h => horariosProfSet.has(h)));
+            }
+          }
+
+          horariosFiltrados = Array.from(horariosComunes);
+        }
+
+        // En modo General, no mostrar horarios bloqueados
+        bloqueados = [];
+      } else {
+        // Modo profesional específico: calcular intersección de horarios disponibles en todas las fechas
+        const todasLasPromesas = fechasAProcesar.map(fechaStr =>
+          reservasService.obtenerHorariosDisponibles(
+            establecimiento,
+            fechaStr,
+            profesionalSeleccionado.id,
+            servicio
+          )
+        );
+
+        const respuestas = await Promise.all(todasLasPromesas);
+
+        // Obtener horarios disponibles de cada fecha
+        const horariosPorFecha = respuestas.map(resp =>
+          resp.data?.horariosDisponibles || resp.horariosDisponibles || []
+        );
+
+        // Calcular intersección: horarios disponibles en TODAS las fechas
+        if (horariosPorFecha.length > 0) {
+          let horariosComunes = new Set(horariosPorFecha[0]);
+
+          for (let i = 1; i < horariosPorFecha.length; i++) {
+            const horariosFecha = new Set(horariosPorFecha[i]);
+            horariosComunes = new Set([...horariosComunes].filter(h => horariosFecha.has(h)));
+          }
+
+          horariosFiltrados = Array.from(horariosComunes);
+        }
+
+        // Para horarios bloqueados, mostrar los que están bloqueados en al menos una fecha
+        const bloqueadosPorFecha = respuestas.map(resp =>
+          resp.data?.horariosBloqueados || resp.horariosBloqueados || []
+        );
+        const bloqueadosSet = new Set();
+        bloqueadosPorFecha.forEach(bloqueadosFecha => {
+          bloqueadosFecha.forEach(hora => bloqueadosSet.add(hora));
+        });
+        bloqueados = Array.from(bloqueadosSet);
+        // Reservados y bloqueados manualmente (API nueva): unión por fecha; si no vienen, compat: todo como reservado
+        const reservadosPorFecha = respuestas.map(resp =>
+          resp.data?.horariosReservados || resp.horariosReservados || []
+        );
+        const bloqueadosManualmentePorFecha = respuestas.map(resp =>
+          resp.data?.horariosBloqueadosManualmente || resp.horariosBloqueadosManualmente || []
+        );
+        const reservadosSet = new Set();
+        reservadosPorFecha.forEach(arr => arr.forEach(h => reservadosSet.add(h)));
+        const bloqueadosManualmenteSet = new Set();
+        bloqueadosManualmentePorFecha.forEach(arr => arr.forEach(h => bloqueadosManualmenteSet.add(h)));
+        reservados = Array.from(reservadosSet);
+        bloqueadosManualmente = Array.from(bloqueadosManualmenteSet);
+        // Si el backend no envía las listas nuevas, tratar todos los bloqueados como reservados
+        if (reservados.length === 0 && bloqueadosManualmente.length === 0 && bloqueados.length > 0) {
+          reservados = [...bloqueados];
+        }
+      }
+
+      // Obtener la hora límite correcta según el día activo (o el primero si hay múltiples)
+      const horaLimiteCorrecta = obtenerHoraLimiteSegunDia(fechaActiva);
+
+      // Filtrar horarios según la hora mínima y la hora límite
+      const minutosMinima = horaAMinutos(horaMinima);
+      const minutosLimite = horaAMinutos(horaLimiteCorrecta);
+
+      horariosFiltrados = horariosFiltrados.filter(hora => {
+        const minutosHora = horaAMinutos(hora);
+        return minutosHora >= minutosMinima && minutosHora <= minutosLimite;
+      });
+
+      console.log('Horarios recibidos:', horariosFiltrados);
+      console.log('Hora mínima configurada:', horaMinima, '(', minutosMinima, 'minutos)');
+      console.log('Hora límite configurada:', horaLimiteCorrecta, '(', minutosLimite, 'minutos)');
+      console.log('Fechas procesadas:', fechasAProcesar);
+      console.log('Horarios filtrados:', horariosFiltrados);
+
+      setHorariosDisponibles(horariosFiltrados);
+      setHorariosBloqueados(bloqueados);
+      setHorariosReservados(reservados);
+      setHorariosBloqueadosManualmente(bloqueadosManualmente);
+    } catch (err) {
+      console.error('Error al cargar horarios:', err);
+      setError('Error al cargar los horarios disponibles');
+      setHorariosDisponibles([]);
+      setHorariosBloqueados([]);
+      setHorariosReservados([]);
+      setHorariosBloqueadosManualmente([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    obtenerFechaActiva,
+    profesionalSeleccionado,
+    esGeneral,
+    modoSeleccion,
+    diasSeleccionados,
+    esDiaCancelado,
+    team,
+    establecimiento,
+    horaMinima
+  ]);
 
   // Cargar días cancelados al iniciar
   useEffect(() => {
     regenerarDiasCancelados();
-  }, [establecimiento, date, domingosRestaurados]);
+  }, [regenerarDiasCancelados]);
 
   // Cargar reservas del mes cuando cambia el mes visible
   useEffect(() => {
     cargarReservasDelMes(date);
-  }, [establecimiento, date]);
+  }, [date, cargarReservasDelMes]);
 
   // Establecer día activo cuando cambian los días seleccionados en modo 'dias' o 'mes'
   useEffect(() => {
@@ -520,7 +755,7 @@ const Horarios = () => {
     } else if (modoSeleccion !== 'dias' && modoSeleccion !== 'mes') {
       setDiaActivoMultiples(null);
     }
-  }, [diasSeleccionados, modoSeleccion]);
+  }, [diasSeleccionados, modoSeleccion, diaActivoMultiples, esDiaCancelado]);
 
   // Verificar si el día seleccionado está cancelado
   useEffect(() => {
@@ -570,7 +805,7 @@ const Horarios = () => {
     };
     
     verificarDiaCancelado();
-  }, [selectedDate, modoSeleccion, establecimiento, domingosRestaurados, diasCancelados, diaActivoMultiples, diasSeleccionados]);
+  }, [selectedDate, modoSeleccion, establecimiento, domingosRestaurados, diasCancelados, diaActivoMultiples, diasSeleccionados, obtenerFechaActiva]);
 
   // Actualizar hora límite cuando cambia la fecha seleccionada (solo si no fue cambiada manualmente)
   useEffect(() => {
@@ -579,7 +814,7 @@ const Horarios = () => {
       const nuevaHoraLimite = obtenerHoraLimiteSegunDia(fechaActiva);
       setHoraLimite(nuevaHoraLimite);
     }
-  }, [selectedDate, modoSeleccion, horaLimiteManual, diaActivoMultiples, diasSeleccionados]);
+  }, [selectedDate, modoSeleccion, horaLimiteManual, diaActivoMultiples, diasSeleccionados, obtenerFechaActiva]);
 
   // Guardar horario mínimo cuando cambia (solo después de cargar la configuración inicial)
   useEffect(() => {
@@ -609,7 +844,7 @@ const Horarios = () => {
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [horaMinima, configuracionCargada]);
+  }, [horaMinima, configuracionCargada, cargarHorariosDisponibles, esGeneral, establecimiento, profesionalSeleccionado, selectedDate]);
 
   // Cargar horarios disponibles cuando se selecciona día y profesional
   useEffect(() => {
@@ -637,183 +872,21 @@ const Horarios = () => {
       setHorariosBloqueadosManualmente([]);
       setHorariosEliminados(new Set());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, diasSeleccionados, diaActivoMultiples, profesionalSeleccionado, esGeneral, horaLimite, horaMinima, modoSeleccion]);
-
-  const cargarHorariosDisponibles = async () => {
-    const fechaActiva = obtenerFechaActiva();
-    if (!fechaActiva || (!profesionalSeleccionado && !esGeneral)) return;
-    
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      // Usar el primer servicio como referencia para obtener horarios
-      const servicio = services[0];
-      
-      // Determinar fechas a procesar
-      let fechasAProcesar = [];
-      if ((modoSeleccion === 'dias' || modoSeleccion === 'mes') && diasSeleccionados.length > 0) {
-        // Filtrar días cancelados
-        fechasAProcesar = diasSeleccionados
-          .filter(dia => !esDiaCancelado(dia))
-          .map(dia => formatearFecha(dia));
-      } else {
-        fechasAProcesar = [formatearFecha(fechaActiva)];
-      }
-      
-      if (fechasAProcesar.length === 0) {
-        setHorariosDisponibles([]);
-        setHorariosBloqueados([]);
-        setIsLoading(false);
-        return;
-      }
-      
-      let horariosFiltrados = [];
-      let bloqueados = [];
-      let reservados = [];
-      let bloqueadosManualmente = [];
-      
-      if (esGeneral) {
-        // Modo General: obtener horarios de todos los profesionales y todas las fechas, calcular intersección
-        const todasLasPromesas = [];
-        
-        for (const fechaStr of fechasAProcesar) {
-          const promesasPorFecha = team.map(profesional => 
-            reservasService.obtenerHorariosDisponibles(
-              establecimiento,
-              fechaStr,
-              profesional.id,
-              servicio
-            )
-          );
-          todasLasPromesas.push(...promesasPorFecha);
-        }
-        
-        const respuestas = await Promise.all(todasLasPromesas);
-        
-        // Agrupar respuestas por fecha
-        const horariosPorFechaYProfesional = [];
-        let indice = 0;
-        for (const fechaStr of fechasAProcesar) {
-          const horariosPorProfesional = [];
-          for (let i = 0; i < team.length; i++) {
-            const resp = respuestas[indice];
-            horariosPorProfesional.push(resp.data?.horariosDisponibles || resp.horariosDisponibles || []);
-            indice++;
-          }
-          horariosPorFechaYProfesional.push(horariosPorProfesional);
-        }
-        
-        // Calcular intersección: horarios disponibles para TODOS los profesionales en TODAS las fechas
-        if (horariosPorFechaYProfesional.length > 0) {
-          // Empezar con los horarios de la primera fecha y primer profesional
-          let horariosComunes = new Set(horariosPorFechaYProfesional[0][0]);
-          
-          // Intersectar con todos los profesionales de todas las fechas
-          for (const horariosPorProfesional of horariosPorFechaYProfesional) {
-            for (const horariosProf of horariosPorProfesional) {
-              const horariosProfSet = new Set(horariosProf);
-              horariosComunes = new Set([...horariosComunes].filter(h => horariosProfSet.has(h)));
-            }
-          }
-          
-          horariosFiltrados = Array.from(horariosComunes);
-        }
-        
-        // En modo General, no mostrar horarios bloqueados
-        bloqueados = [];
-      } else {
-        // Modo profesional específico: calcular intersección de horarios disponibles en todas las fechas
-        const todasLasPromesas = fechasAProcesar.map(fechaStr =>
-          reservasService.obtenerHorariosDisponibles(
-            establecimiento,
-            fechaStr,
-            profesionalSeleccionado.id,
-            servicio
-          )
-        );
-        
-        const respuestas = await Promise.all(todasLasPromesas);
-        
-        // Obtener horarios disponibles de cada fecha
-        const horariosPorFecha = respuestas.map(resp => 
-          resp.data?.horariosDisponibles || resp.horariosDisponibles || []
-        );
-        
-        // Calcular intersección: horarios disponibles en TODAS las fechas
-        if (horariosPorFecha.length > 0) {
-          let horariosComunes = new Set(horariosPorFecha[0]);
-          
-          for (let i = 1; i < horariosPorFecha.length; i++) {
-            const horariosFecha = new Set(horariosPorFecha[i]);
-            horariosComunes = new Set([...horariosComunes].filter(h => horariosFecha.has(h)));
-          }
-          
-          horariosFiltrados = Array.from(horariosComunes);
-        }
-        
-        // Para horarios bloqueados, mostrar los que están bloqueados en al menos una fecha
-        const bloqueadosPorFecha = respuestas.map(resp => 
-          resp.data?.horariosBloqueados || resp.horariosBloqueados || []
-        );
-        const bloqueadosSet = new Set();
-        bloqueadosPorFecha.forEach(bloqueadosFecha => {
-          bloqueadosFecha.forEach(hora => bloqueadosSet.add(hora));
-        });
-        bloqueados = Array.from(bloqueadosSet);
-        // Reservados y bloqueados manualmente (API nueva): unión por fecha; si no vienen, compat: todo como reservado
-        const reservadosPorFecha = respuestas.map(resp => 
-          resp.data?.horariosReservados || resp.horariosReservados || []
-        );
-        const bloqueadosManualmentePorFecha = respuestas.map(resp => 
-          resp.data?.horariosBloqueadosManualmente || resp.horariosBloqueadosManualmente || []
-        );
-        const reservadosSet = new Set();
-        reservadosPorFecha.forEach(arr => arr.forEach(h => reservadosSet.add(h)));
-        const bloqueadosManualmenteSet = new Set();
-        bloqueadosManualmentePorFecha.forEach(arr => arr.forEach(h => bloqueadosManualmenteSet.add(h)));
-        reservados = Array.from(reservadosSet);
-        bloqueadosManualmente = Array.from(bloqueadosManualmenteSet);
-        // Si el backend no envía las listas nuevas, tratar todos los bloqueados como reservados
-        if (reservados.length === 0 && bloqueadosManualmente.length === 0 && bloqueados.length > 0) {
-          reservados = [...bloqueados];
-        }
-      }
-      
-      // Obtener la hora límite correcta según el día activo (o el primero si hay múltiples)
-      const horaLimiteCorrecta = obtenerHoraLimiteSegunDia(fechaActiva);
-      
-      // Filtrar horarios según la hora mínima y la hora límite
-      const minutosMinima = horaAMinutos(horaMinima);
-      const minutosLimite = horaAMinutos(horaLimiteCorrecta);
-      
-      horariosFiltrados = horariosFiltrados.filter(hora => {
-        const minutosHora = horaAMinutos(hora);
-        return minutosHora >= minutosMinima && minutosHora <= minutosLimite;
-      });
-      
-      console.log('Horarios recibidos:', horariosFiltrados);
-      console.log('Hora mínima configurada:', horaMinima, '(', minutosMinima, 'minutos)');
-      console.log('Hora límite configurada:', horaLimiteCorrecta, '(', minutosLimite, 'minutos)');
-      console.log('Fechas procesadas:', fechasAProcesar);
-      console.log('Horarios filtrados:', horariosFiltrados);
-      
-      setHorariosDisponibles(horariosFiltrados);
-      setHorariosBloqueados(bloqueados);
-      setHorariosReservados(reservados);
-      setHorariosBloqueadosManualmente(bloqueadosManualmente);
-    } catch (err) {
-      console.error('Error al cargar horarios:', err);
-      setError('Error al cargar los horarios disponibles');
-      setHorariosDisponibles([]);
-      setHorariosBloqueados([]);
-      setHorariosReservados([]);
-      setHorariosBloqueadosManualmente([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [
+    selectedDate,
+    diasSeleccionados,
+    diaActivoMultiples,
+    profesionalSeleccionado,
+    esGeneral,
+    horaLimite,
+    horaMinima,
+    modoSeleccion,
+    horaLimiteManual,
+    obtenerFechaActiva,
+    hayDiasSeleccionados,
+    cargarHorariosBloqueados,
+    cargarHorariosDisponibles
+  ]);
 
   const eliminarHorario = async (hora) => {
     if (!profesionalSeleccionado && !esGeneral) return;
@@ -1167,36 +1240,6 @@ const Horarios = () => {
       setError('Error al restaurar el día: ' + (err.message || 'Error desconocido'));
     }
   };
-  
-  const cargarHorariosBloqueados = async () => {
-    const fechaActiva = obtenerFechaActiva();
-    if (!fechaActiva || (!profesionalSeleccionado && !esGeneral)) return;
-    
-    try {
-      const fechaStr = formatearFecha(fechaActiva);
-      
-      if (esGeneral) {
-        // En modo General, no mostrar horarios bloqueados
-        // porque un horario solo está realmente bloqueado si TODOS los profesionales lo tienen ocupado
-        setHorariosBloqueados([]);
-        setHorariosEliminados(new Set());
-      } else {
-        const response = await horariosBloqueadosService.obtenerHorariosBloqueados(
-          establecimiento,
-          fechaStr,
-          profesionalSeleccionado.id
-        );
-        
-        const bloqueados = response.data || response || [];
-        const horasBloqueadas = bloqueados.map(h => h.hora);
-        
-        // Actualizar el set de horarios eliminados con los del servidor
-        setHorariosEliminados(new Set(horasBloqueadas));
-      }
-    } catch (err) {
-      console.error('Error al cargar horarios bloqueados:', err);
-    }
-  };
 
   // Función para obtener el nombre del mes
   const obtenerNombreMes = (fecha) => {
@@ -1298,31 +1341,6 @@ const Horarios = () => {
     return añoFecha === añoSiguiente && mesFecha === mesSiguiente;
   };
 
-  // Función auxiliar para verificar si un día está cancelado
-  const esDiaCancelado = (fecha) => {
-    const fechaStr = formatearFecha(fecha);
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const fechaComparar = new Date(fecha);
-    fechaComparar.setHours(0, 0, 0, 0);
-    const esFuturoOHoy = fechaComparar >= hoy;
-    
-    if (!esFuturoOHoy) return false;
-    
-    // Verificar si es domingo no restaurado
-    const esDomingo = fecha.getDay() === 0 && !domingosRestaurados.has(fechaStr);
-    if (esDomingo) return true;
-    
-    // Verificar si está en la lista de días cancelados
-    const estaEnListaCancelados = diasCancelados.some(d => {
-      const fechaCancelada = parseFechaLocal(d.fecha);
-      if (!fechaCancelada || isNaN(fechaCancelada.getTime())) return false;
-      return formatearFecha(fechaCancelada) === fechaStr;
-    });
-    
-    return estaEnListaCancelados;
-  };
-
   // Deshabilitar días pasados en el calendario y días que no coincidan con el tipo seleccionado
   const tileDisabled = useCallback(({ date, view }) => {
     if (view === 'month') {
@@ -1348,7 +1366,7 @@ const Horarios = () => {
       return false;
     }
     return false;
-  }, [modoSeleccion, diasSeleccionados]);
+  }, [modoSeleccion, diasSeleccionados, esDiaCancelado]);
 
   // Aplicar clases CSS a los días del calendario
   const tileClassName = useCallback(({ date, view }) => {
@@ -1381,14 +1399,14 @@ const Horarios = () => {
       
       if (esFuturoOHoy) {
         const esDomingo = date.getDay() === 0 && !domingosRestaurados.has(fechaStr);
-        const esDiaCancelado = diasCancelados.some(d => {
+        const diaEstaCanceladoEnLista = diasCancelados.some(d => {
           const fecha = parseFechaLocal(d.fecha);
           if (!fecha || isNaN(fecha.getTime())) return false;
           return formatearFecha(fecha) === fechaStr;
         });
         if (esDomingo) {
           clases.push('dia-cerrado');
-        } else if (esDiaCancelado) {
+        } else if (diaEstaCanceladoEnLista) {
           clases.push('dia-cancelado');
         }
       }
@@ -1408,7 +1426,7 @@ const Horarios = () => {
       return clases.length > 0 ? clases.join(' ') : null;
     }
     return null;
-  }, [modoSeleccion, selectedDate, diasSeleccionados, mesSeleccionado, diasCancelados, domingosRestaurados]);
+  }, [modoSeleccion, selectedDate, diasSeleccionados, mesSeleccionado, diasCancelados, domingosRestaurados, esDiaCancelado]);
 
   // Función para mostrar la cantidad de turnos en cada día del calendario
   const tileContent = useCallback(({ date, view }) => {

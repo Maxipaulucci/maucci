@@ -8,7 +8,11 @@ const TurnosInfoTip = () => {
   const { user } = useAuth();
   const [showTip, setShowTip] = useState(false);
 
-  if (!user) return null;
+  // Solo para clientes en la web pública; no en panel de negocio ni superadmin
+  const esAdminOSuperAdmin =
+    user?.rol === 'admin' || user?.isSuperAdmin === true;
+
+  if (!user || esAdminOSuperAdmin) return null;
 
   return createPortal(
     <>
